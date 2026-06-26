@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>内庭心理咨询 — 女性心理咨询师个人主页</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Viaoda+Libre&family=Imprima&display=swap" rel="stylesheet">
+  <style>
+    :root { scrollbar-gutter: stable; }
+    html, body { margin: 0; padding: 0; background: #0a0608; scroll-behavior: auto; }
+    body { font-family: 'Imprima', sans-serif; color: #fff; }
+    body.modal-open { overflow: hidden; }
+    * { box-sizing: border-box; }
+
+    @keyframes bobUp {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    #scroll-root { height: 480vh; position: relative; }
+    #stage {
+      position: sticky; top: 0; left: 0; width: 100%; height: 100vh;
+      overflow: hidden; background: #0a0608;
+    }
+
+    .layer {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      will-change: transform, opacity; pointer-events: none;
+    }
+    #world {
+      background-size: cover; background-position: center;
+      transform-origin: 50% 50%;
+    }
+    #portal {
+      background-size: cover; background-position: center;
+      transform-origin: 52% 38%; z-index: 5;
+    }
+    .curtain {
+      top: 0; height: 100%; width: 62%;
+      background-size: cover; background-position: center; z-index: 8;
+    }
+    #curtain-left { left: 0; transform-origin: left center; }
+    #curtain-right { right: 0; transform-origin: right center; }
+
+    nav {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 48px; pointer-events: auto;
+    }
+    .nav-group { display: flex; align-items: center; gap: 30px; flex: 1; }
+    .nav-group.right { justify-content: flex-end; }
+    .nav-link {
+      text-transform: uppercase; font-size: 12px; letter-spacing: 0.12em;
+      color: #fff; opacity: 0.9; text-decoration: none;
+      border: 0; background: transparent; padding: 4px 0; cursor: pointer;
+      font: 12px/1 'Imprima', sans-serif; border-radius: 999px;
+    }
+    .nav-link:hover,
+    .nav-link:focus-visible {
+      opacity: 1;
+      outline: 1px solid rgba(255,255,255,0.58);
+      outline-offset: 8px;
+      text-shadow: 0 0 18px rgba(255,255,255,0.42);
+    }
+    .nav-logo { width: 28px; height: 28px; display: grid; place-items: center; }
+    .nav-mobile { display: none; }
+
+    #scene1 {
+      position: absolute; inset: 0; z-index: 46; pointer-events: none;
+    }
+    .hero-left {
+      position: absolute; top: 46%; left: 60px; transform: translateY(-50%);
+      max-width: 440px;
+    }
+    .hero-title {
+      font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif; color: #fff;
+      font-size: clamp(46px, 7vw, 92px); line-height: 1.0; letter-spacing: 0.01em;
+      margin: 0 0 22px; text-shadow: 0 2px 24px rgba(0,0,0,0.45);
+    }
+    .hero-title .title-zh {
+      display: block;
+      font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+      font-size: clamp(44px, 6.4vw, 84px);
+      letter-spacing: 0.08em;
+    }
+    .hero-title .title-en {
+      display: block;
+      margin-top: 10px;
+      font-size: clamp(24px, 3.5vw, 48px);
+      letter-spacing: 0.16em;
+      opacity: 0.78;
+    }
+    .hero-kicker {
+      margin: 0 0 14px;
+      font-size: 13px;
+      line-height: 1.6;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.72);
+      text-transform: uppercase;
+    }
+    .hero-sub {
+      font-size: 16px; line-height: 1.7; color: rgba(255,255,255,0.82); max-width: 440px;
+      text-wrap: pretty;
+    }
+    .hero-right {
+      position: absolute; top: 50%; right: 40px; transform: translateY(-50%);
+      display: flex; gap: 18px;
+    }
+    .hero-card {
+      width: 158px; height: 158px; border-radius: 28px; overflow: hidden;
+      position: relative; background-size: cover; background-position: center;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      border: 0; padding: 0; color: #fff; text-align: left; cursor: default;
+      font-family: 'Imprima', sans-serif;
+    }
+    button.hero-card {
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+    button.hero-card:focus-visible {
+      outline: 2px solid rgba(255,255,255,0.86);
+      outline-offset: 4px;
+    }
+    .card-label {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; backdrop-filter: blur(6px);
+      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 60%, transparent 100%);
+      font-size: 12px; letter-spacing: 0.08em;
+    }
+    .play-icon {
+      width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.92);
+      display: grid; place-items: center; color: #2a1808; flex: none;
+    }
+    .patron-metric {
+      position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 16px;
+      font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif; font-size: 22px; line-height: 1.1;
+      background: linear-gradient(to top, rgba(0,0,0,0.6), transparent 70%);
+    }
+    .patron-metric small {
+      display: block;
+      margin-top: 8px;
+      font-family: 'Imprima', sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      line-height: 1.35;
+      color: rgba(255,255,255,0.72);
+    }
+
+    .dots {
+      position: absolute; bottom: 36px; left: 60px; display: flex; gap: 8px; z-index: 47;
+    }
+    .dots i { height: 4px; border-radius: 4px; background: #fff; display: block; }
+    .dots i.wide { width: 28px; opacity: 1; }
+    .dots i.thin { width: 14px; opacity: 0.45; }
+
+    .scroll-cue {
+      position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 47;
+    }
+    .scroll-cue span {
+      text-transform: uppercase; font-size: 10px; letter-spacing: 0.22em; color: rgba(255,255,255,0.6);
+    }
+    .scroll-cue .chev {
+      width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4);
+      display: grid; place-items: center; animation: bobUp 1.8s ease-in-out infinite;
+    }
+
+    #scene2 {
+      position: absolute; inset: 0; z-index: 46;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; padding: 0 20px;
+    }
+    .cta-wrap { text-align: center; max-width: 520px; }
+    .cta-title {
+      font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif; color: #fff;
+      font-size: clamp(38px, 5.4vw, 72px); letter-spacing: 0.05em; line-height: 1.08;
+      margin: 0 0 24px; text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    }
+    .cta-text {
+      font-family: 'Imprima', sans-serif; font-size: 20px; line-height: 1.6;
+      color: rgba(255,255,255,0.82); max-width: 480px; margin: 0 auto;
+      text-wrap: pretty;
+    }
+    .cta-actions {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+    }
+    .cta-button {
+      min-height: 46px;
+      border: 1px solid rgba(255,255,255,0.52);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      padding: 0 24px;
+      font: 13px/1 'Imprima', sans-serif;
+      letter-spacing: 0.16em;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+    .cta-button:hover,
+    .cta-button:focus-visible {
+      background: rgba(255,255,255,0.2);
+      border-color: rgba(255,255,255,0.86);
+      outline: none;
+      transform: translateY(-1px);
+    }
+    .cta-note {
+      max-width: 360px;
+      color: rgba(255,255,255,0.62);
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: 0.08em;
+    }
+    .consult-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: rgba(10,6,8,0.62);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+      overflow-y: auto;
+    }
+    .consult-panel.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .consult-card {
+      width: min(430px, 100%);
+      max-height: calc(100vh - 44px);
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 26px;
+      background: rgba(16,10,10,0.88);
+      color: #fff;
+      padding: 26px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.55);
+      backdrop-filter: blur(18px);
+    }
+    .consult-card h3 {
+      margin: 0 0 10px;
+      font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif;
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: 0.03em;
+    }
+    .consult-card p {
+      margin: 0 0 20px;
+      color: rgba(255,255,255,0.72);
+      line-height: 1.6;
+    }
+    .consult-field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.78);
+    }
+    .consult-field input,
+    .consult-field textarea {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      padding: 12px 14px;
+      font: 15px/1.4 'Imprima', sans-serif;
+      outline: none;
+    }
+    .consult-field input::placeholder,
+    .consult-field textarea::placeholder {
+      color: rgba(255,255,255,0.34);
+    }
+    .consult-field textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+    .consult-field input:focus,
+    .consult-field textarea:focus {
+      border-color: rgba(255,255,255,0.58);
+      background: rgba(255,255,255,0.12);
+    }
+    .consult-field input[aria-invalid="true"],
+    .privacy-consent input[aria-invalid="true"] {
+      outline: 2px solid rgba(255,220,196,0.72);
+      outline-offset: 3px;
+    }
+    .privacy-consent {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 6px 0 4px;
+      color: rgba(255,255,255,0.74);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .privacy-consent input {
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      accent-color: rgba(255,255,255,0.86);
+      flex: none;
+    }
+    .consult-safety {
+      margin: 12px 0 0;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.58);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .consult-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .consult-row button {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.24);
+      padding: 0 18px;
+      color: #fff;
+      background: transparent;
+      cursor: pointer;
+      font: 13px/1 'Imprima', sans-serif;
+      letter-spacing: 0.12em;
+      transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+    .consult-row .primary {
+      flex: 1;
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.46);
+    }
+    .consult-row button:hover,
+    .consult-row button:focus-visible {
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(255,255,255,0.62);
+      outline: none;
+      transform: translateY(-1px);
+    }
+    .consult-row button:disabled {
+      cursor: wait;
+      opacity: 0.64;
+      transform: none;
+    }
+    .consult-status {
+      min-height: 22px;
+      margin-top: 14px;
+      color: rgba(255,255,255,0.82);
+      font-size: 13px;
+    }
+    .consult-status[data-tone="error"] { color: rgba(255,220,196,0.92); }
+    .consult-status[data-tone="success"] { color: rgba(224,255,235,0.9); }
+
+    .fade-ui { opacity: 0; transition: opacity 0.9s ease, transform 0.9s ease; }
+    .fade-ui.in { opacity: 1; }
+    .hero-left.fade-ui { transform: translateY(calc(-50% + 20px)); }
+    .hero-left.fade-ui.in { transform: translateY(-50%); }
+
+    @media (max-width: 767px) {
+      nav { padding: 18px 20px; }
+      .nav-group { display: none; }
+      .nav-mobile { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+      .hero-left { left: 50%; right: auto; transform: translate(-50%, -50%); top: 42%;
+        text-align: center; max-width: 280px; }
+      .hero-left.fade-ui { transform: translate(-50%, calc(-50% + 20px)); }
+      .hero-left.fade-ui.in { transform: translate(-50%, -50%); }
+      .hero-title { color: #3b1a0a; font-size: clamp(36px, 11vw, 46px); }
+      .hero-title .title-zh { font-size: clamp(38px, 11vw, 48px); letter-spacing: 0.06em; }
+      .hero-title .title-en { font-size: 18px; letter-spacing: 0.14em; margin-top: 8px; }
+      .hero-kicker { color: rgba(59,26,10,0.82); }
+      .hero-sub { color: #3b1a0a; max-width: 280px; margin: 0 auto; }
+      .hero-right { position: absolute; top: 64%; right: auto; left: 50%; transform: translateX(-50%); }
+      .hero-right .hero-card:nth-child(2),
+      .hero-right .hero-card:nth-child(3) { display: none; }
+      .dots { left: 50%; transform: translateX(-50%); }
+      .scroll-cue { display: none; }
+      .cta-title { font-size: 38px; }
+      .cta-text { font-size: 14px; max-width: 260px; }
+      .consult-card { border-radius: 22px; padding: 22px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .scroll-cue .chev { animation: none; }
+      .fade-ui,
+      .cta-button,
+      .consult-panel,
+      .consult-row button {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scroll-root">
+    <div id="stage">
+      <div id="world" class="layer" aria-hidden="true"></div>
+      <div id="portal" class="layer" aria-hidden="true"></div>
+      <div id="curtain-left" class="curtain layer" aria-hidden="true"></div>
+      <div id="curtain-right" class="curtain layer" aria-hidden="true"></div>
+
+      <nav aria-label="内庭页面导航">
+        <div class="nav-group left">
+          <button class="nav-link timeline-link" type="button" data-progress="0">内庭</button>
+          <button class="nav-link timeline-link" type="button" data-progress="0.12">初谈</button>
+          <button class="nav-link timeline-link" type="button" data-progress="0.2">边界</button>
+        </div>
+        <div class="nav-logo" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path d="M14 2l2.09 6.42H23l-5.45 3.96L19.64 19 14 15.04 8.36 19l2.09-6.62L5 8.42h6.91L14 2z" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="nav-group right">
+          <button class="nav-link timeline-link" type="button" data-progress="0.56">向内</button>
+          <button class="nav-link timeline-link" type="button" data-progress="0.78">门槛</button>
+          <button class="nav-link open-consult" type="button">预约</button>
+        </div>
+        <div class="nav-mobile">
+          <button class="nav-link timeline-link" type="button" data-progress="0">进入</button>
+          <div class="nav-logo" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <path d="M14 2l2.09 6.42H23l-5.45 3.96L19.64 19 14 15.04 8.36 19l2.09-6.62L5 8.42h6.91L14 2z" fill="#fff"/>
+            </svg>
+          </div>
+          <button class="nav-link open-consult" type="button">预约</button>
+        </div>
+      </nav>
+
+      <div id="scene1">
+        <div class="hero-left fade-ui">
+          <p class="hero-kicker">女性心理咨询师 · 保密会谈</p>
+          <h1 class="hero-title"><span class="title-zh">走入内庭</span><span class="title-en">INNER COURT</span></h1>
+          <p class="hero-sub">在层叠檐影与静水之间，安放情绪、关系与自我回声。这里不是逃离现实，而是在安全边界里慢慢看见自己。</p>
+        </div>
+        <div class="hero-right fade-ui">
+          <button class="hero-card open-consult" id="hc0" type="button" aria-label="预约初谈">
+            <div class="card-label">
+              <span class="play-icon" aria-hidden="true">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" focusable="false"><path d="M3 2l7 4-7 4V2z"/></svg>
+              </span>
+              预约初谈
+            </div>
+          </button>
+          <div class="hero-card" id="hc1">
+            <div class="patron-metric">个体咨询<br>关系 · 边界 · 自我<small>保密初谈</small></div>
+          </div>
+          <button class="hero-card timeline-link" id="hc2" type="button" data-progress="0.72" aria-label="继续向内看见咨询邀请">
+            <div class="card-label">
+              <span class="play-icon" aria-hidden="true">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true" focusable="false"><path d="M3 2l7 4-7 4V2z"/></svg>
+              </span>
+              继续向内
+            </div>
+          </button>
+        </div>
+
+        <div class="dots fade-ui">
+          <i class="wide"></i><i class="thin"></i><i class="thin"></i><i class="thin"></i>
+        </div>
+
+        <div class="scroll-cue fade-ui">
+          <span>向内</span>
+          <div class="chev">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div id="scene2">
+        <div class="cta-wrap">
+          <h2 class="cta-title">跨过安静的门槛</h2>
+          <p class="cta-text">预约一次初谈，让困扰被缓慢展开，也让新的秩序在安全、保密的关系里重新成形。</p>
+          <div class="cta-actions">
+            <button class="cta-button open-consult" type="button">预约初谈</button>
+            <span class="cta-note">非紧急支持 · 初谈中共同确认咨询设置与保密边界</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="consult-panel" id="consultPanel" role="dialog" aria-modal="true" aria-labelledby="consultTitle" aria-describedby="consultDesc" aria-hidden="true" inert>
+    <form class="consult-card" id="consultForm" novalidate>
+      <h3 id="consultTitle">初谈预约</h3>
+      <p id="consultDesc">留下一个可以被温柔回应的入口。你只需要写下必要信息；正式咨询设置、保密范围与边界会在初谈中共同确认。</p>
+      <label class="consult-field">
+        称呼
+        <input name="name" autocomplete="name" required aria-required="true" aria-describedby="consultStatus" placeholder="如何称呼你">
+      </label>
+      <label class="consult-field">
+        联系方式
+        <input name="contact" autocomplete="email" inputmode="text" required aria-required="true" aria-describedby="consultStatus" placeholder="邮箱、电话或微信">
+      </label>
+      <label class="consult-field">
+        想先谈什么
+        <textarea name="message" placeholder="可以只写一句话，也可以暂时留空"></textarea>
+      </label>
+      <label class="privacy-consent">
+        <input name="privacy" type="checkbox" required aria-required="true" aria-describedby="consultStatus">
+        我理解这些信息只用于初步联系与预约沟通，正式设置会在初谈中再确认。
+      </label>
+      <p class="consult-safety">若正在经历自伤、他伤或其他紧急风险，请立即联系当地紧急救援，或请可信赖的人陪同就医。</p>
+      <div class="consult-row">
+        <button type="button" id="closeConsult">稍后</button>
+        <button class="primary" type="submit">发送预约意向</button>
+      </div>
+      <div class="consult-status" id="consultStatus" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <script>
+    var PORTAL_BG = 'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/portal_bg_mu60k9-78f20d.webp';
+    var CURTAIN_LEFT = 'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/curtain_left_cdht6q-c85f2f.webp';
+    var CURTAIN_RIGHT = 'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/curtain_right_a9bn3i-1ca8f6.webp';
+    var WORLD_BG = 'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/world_bg_jzzcn1-dfd909.webp';
+    var CARD_IMAGES = [
+      'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/card_3_nbwm25-de0132.webp',
+      'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/card_2_wr6al6-b3a8c5.webp',
+      'https://plugin-assets.open-design.ai/plugins/mythic-naturecore/card_1_jz8otj-096be2.webp'
+    ];
+
+    function easeInOut(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+    var MAG = { world: 6, portal: 7, curtainL: 14, curtainR: 14 };
+
+    var worldEl = document.getElementById('world');
+    var portalEl = document.getElementById('portal');
+    var curtLEl = document.getElementById('curtain-left');
+    var curtREl = document.getElementById('curtain-right');
+    worldEl.style.backgroundImage = "url('" + WORLD_BG + "')";
+    portalEl.style.backgroundImage = "url('" + PORTAL_BG + "')";
+    curtLEl.style.backgroundImage = "url('" + CURTAIN_LEFT + "')";
+    curtREl.style.backgroundImage = "url('" + CURTAIN_RIGHT + "')";
+    document.getElementById('hc0').style.backgroundImage = "url('" + CARD_IMAGES[0] + "')";
+    document.getElementById('hc1').style.backgroundImage = "url('" + CARD_IMAGES[1] + "')";
+    document.getElementById('hc2').style.backgroundImage = "url('" + CARD_IMAGES[2] + "')";
+
+    var scene1 = document.getElementById('scene1');
+    var scene2 = document.getElementById('scene2');
+    var consultPanel = document.getElementById('consultPanel');
+    var consultForm = document.getElementById('consultForm');
+    var closeConsult = document.getElementById('closeConsult');
+    var consultStatus = document.getElementById('consultStatus');
+    var submitButton = consultForm.querySelector('button[type="submit"]');
+    var lastFocus = null;
+    var sendTimer = null;
+    var motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var reduceMotion = motionMq.matches;
+
+    function setSubmitting(isSubmitting) {
+      consultForm.setAttribute('aria-busy', isSubmitting ? 'true' : 'false');
+      submitButton.disabled = isSubmitting;
+      submitButton.textContent = isSubmitting ? '正在确认' : '发送预约意向';
+    }
+
+    function clearConsultState() {
+      if (sendTimer) {
+        clearTimeout(sendTimer);
+        sendTimer = null;
+      }
+      setSubmitting(false);
+      consultStatus.textContent = '';
+      consultStatus.removeAttribute('data-tone');
+      var invalidFields = consultForm.querySelectorAll('[aria-invalid="true"]');
+      for (var i = 0; i < invalidFields.length; i++) invalidFields[i].removeAttribute('aria-invalid');
+    }
+
+    var isMobile = false;
+    var mq = window.matchMedia('(max-width: 767px)');
+    function onMq(e) { isMobile = e.matches; }
+    onMq(mq);
+    if (mq.addEventListener) mq.addEventListener('change', onMq); else mq.addListener(onMq);
+
+    var scrollProgress = 0;
+    function readScroll() {
+      var root = document.getElementById('scroll-root');
+      var scrollable = root.offsetHeight - window.innerHeight;
+      scrollProgress = scrollable > 0 ? clamp(window.scrollY / scrollable, 0, 1) : 0;
+    }
+    window.addEventListener('scroll', readScroll, { passive: true });
+    window.addEventListener('resize', readScroll);
+    readScroll();
+
+    function jumpToProgress(progress) {
+      var root = document.getElementById('scroll-root');
+      var scrollable = root.offsetHeight - window.innerHeight;
+      window.scrollTo({ top: scrollable * progress, behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
+    var timelineLinks = document.querySelectorAll('.timeline-link');
+    for (var t = 0; t < timelineLinks.length; t++) {
+      timelineLinks[t].addEventListener('click', function (event) {
+        event.preventDefault();
+        jumpToProgress(parseFloat(this.getAttribute('data-progress')) || 0);
+      });
+    }
+
+    function openConsultPanel(event) {
+      if (event) event.preventDefault();
+      lastFocus = document.activeElement;
+      clearConsultState();
+      consultPanel.classList.add('open');
+      consultPanel.setAttribute('aria-hidden', 'false');
+      consultPanel.removeAttribute('inert');
+      document.body.classList.add('modal-open');
+      consultForm.elements.namedItem('name').focus();
+    }
+    function closeConsultPanel() {
+      if (!consultPanel.classList.contains('open')) return;
+      consultPanel.classList.remove('open');
+      consultPanel.setAttribute('aria-hidden', 'true');
+      consultPanel.setAttribute('inert', '');
+      document.body.classList.remove('modal-open');
+      clearConsultState();
+      if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    }
+    var consultTriggers = document.querySelectorAll('.open-consult');
+    for (var c = 0; c < consultTriggers.length; c++) {
+      consultTriggers[c].addEventListener('click', openConsultPanel);
+    }
+    closeConsult.addEventListener('click', closeConsultPanel);
+    consultPanel.addEventListener('click', function (event) {
+      if (event.target === consultPanel) closeConsultPanel();
+    });
+    function getDialogFocusables() {
+      return consultPanel.querySelectorAll('button, input, textarea, [href], [tabindex]:not([tabindex="-1"])');
+    }
+    window.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && consultPanel.classList.contains('open')) {
+        event.preventDefault();
+        closeConsultPanel();
+        return;
+      }
+      if (event.key !== 'Tab' || !consultPanel.classList.contains('open')) return;
+      var focusables = getDialogFocusables();
+      if (!focusables.length) return;
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+    consultForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var nameField = consultForm.elements.namedItem('name');
+      var contactField = consultForm.elements.namedItem('contact');
+      var privacyField = consultForm.elements.namedItem('privacy');
+      nameField.removeAttribute('aria-invalid');
+      contactField.removeAttribute('aria-invalid');
+      privacyField.removeAttribute('aria-invalid');
+      consultStatus.removeAttribute('data-tone');
+      if (!nameField.value.trim()) {
+        nameField.setAttribute('aria-invalid', 'true');
+        consultStatus.setAttribute('data-tone', 'error');
+        consultStatus.textContent = '请先留下一个称呼。';
+        nameField.focus();
+        return;
+      }
+      if (!contactField.value.trim()) {
+        contactField.setAttribute('aria-invalid', 'true');
+        consultStatus.setAttribute('data-tone', 'error');
+        consultStatus.textContent = '请留下一个可联系的方式。';
+        contactField.focus();
+        return;
+      }
+      if (!privacyField.checked) {
+        privacyField.setAttribute('aria-invalid', 'true');
+        consultStatus.setAttribute('data-tone', 'error');
+        consultStatus.textContent = '请先确认信息只用于初步联系与预约沟通。';
+        privacyField.focus();
+        return;
+      }
+      setSubmitting(true);
+      consultStatus.setAttribute('data-tone', 'success');
+      consultStatus.textContent = '正在整理预约意向...';
+      sendTimer = setTimeout(function () {
+        sendTimer = null;
+        setSubmitting(false);
+        consultStatus.setAttribute('data-tone', 'success');
+        consultStatus.textContent = '已记录预约意向，我会按你留下的方式确认初谈安排。';
+        consultForm.reset();
+      }, reduceMotion ? 0 : 520);
+    });
+    consultForm.addEventListener('input', function (event) {
+      if (sendTimer) {
+        clearTimeout(sendTimer);
+        sendTimer = null;
+        setSubmitting(false);
+      }
+      if (event.target && event.target.removeAttribute) event.target.removeAttribute('aria-invalid');
+      consultStatus.textContent = '';
+      consultStatus.removeAttribute('data-tone');
+    });
+    consultForm.addEventListener('change', function (event) {
+      if (sendTimer) {
+        clearTimeout(sendTimer);
+        sendTimer = null;
+        setSubmitting(false);
+      }
+      if (event.target && event.target.removeAttribute) event.target.removeAttribute('aria-invalid');
+      consultStatus.textContent = '';
+      consultStatus.removeAttribute('data-tone');
+    });
+
+    var targetRX = 0, targetRY = 0, curRX = 0, curRY = 0;
+    function onMotionMq(e) {
+      reduceMotion = e.matches;
+      if (reduceMotion) {
+        targetRX = 0;
+        targetRY = 0;
+        curtLEl.style.transition = 'none';
+        curtREl.style.transition = 'none';
+      }
+    }
+    if (motionMq.addEventListener) motionMq.addEventListener('change', onMotionMq); else motionMq.addListener(onMotionMq);
+
+    window.addEventListener('mousemove', function (e) {
+      if (reduceMotion) {
+        targetRX = 0;
+        targetRY = 0;
+        return;
+      }
+      targetRX = (e.clientX / window.innerWidth) * 2 - 1;
+      targetRY = (e.clientY / window.innerHeight) * 2 - 1;
+    });
+
+    function tick() {
+      curRX = lerp(curRX, targetRX, 0.07);
+      curRY = lerp(curRY, targetRY, 0.07);
+      var rx = reduceMotion ? 0 : curRX;
+      var ry = reduceMotion ? 0 : curRY;
+      var p = scrollProgress;
+      var eased = easeInOut(p);
+
+      var worldScale = lerp(1, 1.18, p);
+      worldEl.style.transform = 'scale(' + worldScale + ') translate3d(' + (rx * MAG.world) + 'px,' + (ry * MAG.world) + 'px,0)';
+
+      var portalScale = lerp(1, 7.5, p);
+      var portalOpacity = clamp(1 - (p - 0.65) / 0.2, 0, 1);
+      portalEl.style.opacity = portalOpacity;
+      portalEl.style.transform = 'scale(' + portalScale + ') translate3d(' + (rx * MAG.portal) + 'px,' + (ry * MAG.portal) + 'px,0)';
+
+      var curtainScrollScale = lerp(1, 1.3, p);
+      var totalShift = 62 + eased * 88;
+      curtLEl.style.transform = 'translateX(calc(-' + totalShift + '% + ' + (rx * MAG.curtainL) + 'px)) translateY(' + (ry * MAG.curtainL * 0.3) + 'px) scale(' + curtainScrollScale + ') translateZ(0)';
+      curtREl.style.transform = 'translateX(calc(' + totalShift + '% + ' + (rx * MAG.curtainR) + 'px)) translateY(' + (ry * MAG.curtainR * 0.3) + 'px) scale(' + curtainScrollScale + ') translateZ(0)';
+
+      var s1 = clamp(1 - p / 0.22, 0, 1);
+      scene1.style.opacity = s1;
+      scene1.style.pointerEvents = s1 > 0.05 ? 'auto' : 'none';
+
+      var s2 = clamp((p - 0.68) / 0.16, 0, 1);
+      scene2.style.opacity = s2;
+      scene2.style.pointerEvents = s2 > 0.05 ? 'auto' : 'none';
+
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    curtLEl.style.transition = reduceMotion ? 'none' : 'transform 1.4s cubic-bezier(0.22,1,0.36,1)';
+    curtREl.style.transition = reduceMotion ? 'none' : 'transform 1.4s cubic-bezier(0.22,1,0.36,1)';
+    curtLEl.style.transform = 'translateX(0%)';
+    curtREl.style.transform = 'translateX(0%)';
+
+    setTimeout(function () {
+      curtLEl.style.transform = 'translateX(-62%)';
+      curtREl.style.transform = 'translateX(62%)';
+    }, 100);
+
+    var fadeEls = document.querySelectorAll('.fade-ui');
+    setTimeout(function () {
+      for (var i = 0; i < fadeEls.length; i++) fadeEls[i].classList.add('in');
+    }, 600);
+
+    setTimeout(function () {
+      curtLEl.style.transition = 'none';
+      curtREl.style.transition = 'none';
+      for (var i = 0; i < fadeEls.length; i++) fadeEls[i].style.transition = 'none';
+    }, 2200);
+  </script>
+</body>
+</html>
