@@ -1,8 +1,14 @@
-import backgroundImage from './assets/img/background.png';
-import backgroundEndImage from './assets/img/background-2.png';
+import backgroundOne from './assets/img/background-1.jpg';
+import backgroundTwo from './assets/img/background-2.jpg';
+import teaRoomRain from './assets/img/tea-room-rain.jpg';
+import pavilion from './assets/img/tingzi.jpg';
 
 export const sceneAssets = {
-  world: backgroundImage,
-  worldEnd: backgroundEndImage,
-  cards: [backgroundImage, backgroundEndImage, backgroundImage],
+  world: backgroundOne,
+  worldEnd: backgroundTwo,
+  cards: [backgroundOne, teaRoomRain, pavilion],
+  spaces: {
+    teaRoomRain,
+    pavilion,
+  },
 };

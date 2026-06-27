@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>沙盘游戏中的神话与神经科学 · 黄金圆环图解</title>
+<style>
+  /* ============================================================
+     Golden Circle Diagram · Diagrammatic Minimalism
+     Fixed 1920x1080 stage. One master figure carries the deck.
+     Warm paper + ink + one gold accent and its tints.
+     ============================================================ */
+  @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Manrope:wght@400;500;700;800&display=swap');
+
+  :root {
+    --paper:     #FAFAF7;
+    --ink:       #141414;
+    --night:     #161512;
+    --night-ink: #F5F2EA;
+    --accent:    #E8860C;
+    --tint-2:    #F2BA6B;
+    --tint-3:    #FAE5C3;
+    --neutral-2: #E8E4D9;
+    --neutral-3: #F2EFE7;
+    --line:      #E5E1D6;
+    --muted:     #8A867C;
+    --muted-2:   #56524A;
+    --faint:     #B5B0A4;
+    --night-line:#3A372F;
+    --display: 'Jost', 'Manrope', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --sans: 'Manrope', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: #0C0B09;
+    font-family: var(--sans);
+    overflow: hidden;
+  }
+
+  #stage {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: var(--paper);
+  }
+  #stage:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 8px;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    background: var(--paper);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+  .slide.dark { background: var(--night); color: var(--night-ink); }
+
+  .head, .foot {
+    position: absolute;
+    left: 80px; right: 80px;
+    height: 84px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+  .head { top: 0; border-bottom: 1px solid var(--line); }
+  .foot { bottom: 0; border-top: 1px solid var(--line); }
+  .head b, .foot b { color: var(--ink); font-weight: 700; }
+  .head .sep, .foot .sep { color: var(--accent); padding: 0 12px; }
+  .dark .head { border-bottom-color: var(--night-line); color: var(--faint); }
+  .dark .foot { border-top-color: var(--night-line); color: var(--faint); }
+  .dark .head b, .dark .foot b { color: var(--night-ink); }
+
+  .body {
+    position: absolute;
+    top: 84px; bottom: 84px;
+    left: 80px; right: 80px;
+  }
+
+  .gc {
+    --gc: 640px;
+    position: relative;
+    width: var(--gc);
+    height: var(--gc);
+    flex: none;
+  }
+  .gc .ring { position: absolute; border-radius: 50%; }
+  .gc .ring-what { inset: 0;   background: var(--tint-3); }
+  .gc .ring-how  { inset: 16%; background: var(--tint-2); }
+  .gc .ring-why  {
+    inset: 33%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gc .lbl {
+    position: absolute;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: var(--display);
+    font-weight: 600;
+    letter-spacing: .35em;
+    text-indent: .35em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-size: calc(var(--gc) * 0.042);
+    line-height: 1;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .gc .lbl-what { top: calc(var(--gc) * 0.08);  transform: translateY(-50%); }
+  .gc .lbl-how  { top: calc(var(--gc) * 0.245); transform: translateY(-50%); }
+  .gc .lbl-why  {
+    position: static;
+    font-size: calc(var(--gc) * 0.085);
+    font-weight: 700;
+    color: var(--paper);
+  }
+
+  .gc.mode-how .ring-what  { background: var(--neutral-3); }
+  .gc.mode-how .ring-how   { background: var(--accent); }
+  .gc.mode-how .ring-why   { background: var(--paper); }
+  .gc.mode-how .lbl-how    { color: var(--paper); }
+  .gc.mode-how .lbl-why    { color: var(--muted); }
+
+  .gc.mode-what .ring-what { background: var(--accent); }
+  .gc.mode-what .ring-how  { background: var(--paper); }
+  .gc.mode-what .ring-why  { background: var(--neutral-3); }
+  .gc.mode-what .lbl-what  { color: var(--paper); }
+  .gc.mode-what .lbl-why   { color: var(--muted); }
+
+  .gc.mode-grey .ring-what { background: var(--neutral-3); }
+  .gc.mode-grey .ring-how  { background: var(--neutral-2); }
+  .gc.mode-grey .ring-why  { background: var(--muted); }
+  .gc.mode-grey .lbl       { color: var(--muted-2); }
+  .gc.mode-grey .lbl-why   { color: var(--paper); }
+
+  .gc.mode-outline .ring        { background: transparent; border: 2px solid var(--accent); }
+  .gc.mode-outline .ring-why    { border-width: 3px; }
+  .gc.mode-outline .lbl         { color: var(--night-ink); }
+  .gc.mode-outline .lbl-why     { color: var(--accent); }
+
+  .kicker {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 92px;
+    line-height: 1.08;
+    letter-spacing: -2px;
+  }
+  h2 {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 60px;
+    line-height: 1.12;
+    letter-spacing: -1px;
+  }
+  .lede {
+    font-size: 20px;
+    line-height: 1.85;
+    color: var(--muted-2);
+    max-width: 34em;
+    text-wrap: pretty;
+  }
+  .lede strong { color: var(--ink); font-weight: 700; }
+  .caption {
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+  .glyph { width: 36px; height: 36px; flex: none; }
+
+  .cover-grid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    gap: 80px;
+  }
+  .cover-copy { max-width: 820px; }
+  .cover-copy h1 .dot { color: var(--accent); }
+  .cover-meta {
+    margin-top: 52px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 44px;
+  }
+  .cover-meta .item .v { font-family: var(--sans); font-weight: 800; font-size: 19px; }
+  .cover-meta .item .k { margin-top: 8px; }
+
+  .toc { height: 100%; display: flex; flex-direction: column; justify-content: center; }
+  .toc-rows { border-top: 1px solid var(--line); }
+  .toc-row {
+    display: flex;
+    align-items: center;
+    gap: 34px;
+    padding: 22px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .toc-row .no {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    width: 52px;
+  }
+  .toc-row .t { font-weight: 800; font-size: 25px; letter-spacing: -0.5px; flex: 1; }
+  .toc-row .en {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+
+  .master-grid {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 96px;
+  }
+  .master-fig { position: relative; flex: none; }
+  .gc-arrow { position: absolute; top: 58%; left: 50%; transform: translateY(-50%); z-index: 4; overflow: visible; }
+  .master-notes { display: flex; flex-direction: column; gap: 32px; }
+  .note { display: flex; gap: 24px; align-items: flex-start; }
+  .note .nt { font-weight: 800; font-size: 22px; margin-bottom: 8px; }
+  .note .nt span {
+    font-family: var(--display); font-weight: 600; font-size: 14px;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--accent);
+    margin-left: 14px;
+  }
+  .note p { font-size: 18px; line-height: 1.78; color: var(--muted-2); max-width: 29em; }
+
+  .ring-grid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    gap: 80px;
+  }
+  .ring-copy { max-width: 900px; }
+  .ring-copy h2 .acc { color: var(--accent); }
+  .ring-copy .lede { margin-top: 34px; }
+  .why-disc {
+    width: 540px; height: 540px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex: none;
+  }
+  .why-disc .w {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 82px;
+    letter-spacing: .3em;
+    text-indent: .3em;
+    color: var(--paper);
+  }
+  .why-disc .ws {
+    font-family: var(--display);
+    font-size: 15px; font-weight: 600;
+    letter-spacing: 4px; text-transform: uppercase;
+    color: var(--ink);
+  }
+  .pillars { display: flex; gap: 0; margin-top: 42px; border-top: 1px solid var(--line); }
+  .pillar { flex: 1; padding: 28px 28px 0 0; }
+  .pillar + .pillar { border-left: 1px solid var(--line); padding-left: 28px; }
+  .pillar .no {
+    font-family: var(--display); font-weight: 600; font-size: 14px;
+    letter-spacing: 3px; color: var(--accent); margin-bottom: 16px;
+  }
+  .pillar .t { font-weight: 800; font-size: 21px; margin-bottom: 12px; }
+  .pillar p { font-size: 16.2px; line-height: 1.72; color: var(--muted-2); }
+
+  .what-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 36px; }
+  .what-card {
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px 26px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: var(--paper);
+  }
+  .what-card .t { font-weight: 800; font-size: 19px; }
+  .what-card .d { font-size: 15.6px; line-height: 1.62; color: var(--muted-2); margin-top: 6px; }
+
+  .big-grid { display: flex; align-items: center; height: 100%; gap: 96px; }
+  .big-num {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 300px;
+    line-height: 0.95;
+    letter-spacing: -14px;
+    font-variant-numeric: tabular-nums;
+    position: relative;
+    z-index: 1;
+  }
+  .big-num .x { color: var(--accent); }
+  .big-side { border-left: 1px solid var(--line); padding-left: 60px; }
+  .big-side .claim { font-weight: 800; font-size: 32px; line-height: 1.45; max-width: 19em; margin-bottom: 38px; }
+  .stat-row { display: flex; gap: 48px; }
+  .stat .v { font-weight: 800; font-size: 48px; letter-spacing: -1px; }
+  .stat .v i { font-style: normal; color: var(--accent); }
+  .stat .k { margin-top: 10px; }
+  .big-watermark {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0.22;
+    pointer-events: none;
+  }
+
+  .vs-grid { display: flex; height: 100%; align-items: center; }
+  .vs-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 0 34px; }
+  .vs-col .vt { font-weight: 800; font-size: 28px; text-align: center; }
+  .vs-col .vt small {
+    display: block;
+    font-family: var(--display); font-weight: 600; font-size: 13px;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted-2); margin-top: 10px; text-align: center;
+  }
+  .vs-col ul { list-style: none; text-align: center; }
+  .vs-col li { font-size: 16.5px; line-height: 2.05; color: var(--muted-2); }
+  .vs-col li b { color: var(--ink); }
+  .vs-divider { width: 1px; align-self: stretch; margin: 40px 0; background: var(--line); }
+  .vs-dir {
+    font-family: var(--display); font-weight: 600; font-size: 13px;
+    letter-spacing: 4px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .vs-dir.in  { color: var(--muted-2); }
+  .vs-dir.out { color: var(--accent); }
+
+  .quote-wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+  .quote-ring {
+    position: absolute;
+    right: -340px; top: 50%;
+    transform: translateY(-50%);
+    width: 920px; height: 920px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .quote-ring::before, .quote-ring::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+  }
+  .quote-ring::before { inset: 16%; }
+  .quote-ring::after  { inset: 33%; }
+  blockquote {
+    font-weight: 800;
+    font-size: 64px;
+    line-height: 1.35;
+    letter-spacing: -1px;
+    max-width: 18em;
+  }
+  blockquote .acc { color: var(--accent); }
+  .quote-by { margin-top: 44px; display: flex; align-items: center; gap: 20px; }
+  .quote-by .line { width: 56px; height: 2px; background: var(--accent); }
+  .quote-by .who { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted-2); }
+
+  .end-grid { display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 80px; }
+  .end-copy h2 { font-size: 88px; letter-spacing: -2px; }
+  .end-copy h2 .dot { color: var(--accent); }
+  .end-copy .lede { color: var(--faint); margin-top: 34px; }
+  .end-copy .lede strong { color: var(--night-ink); }
+  .end-cta {
+    margin-top: 52px;
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    border: 2px solid var(--accent);
+    padding: 18px 34px;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .source-list {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 28px;
+  }
+  .source-list div {
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    font-size: 17.5px;
+    line-height: 1.75;
+    color: var(--muted-2);
+  }
+  .source-list b { color: var(--ink); }
+
+  #counter {
+    position: absolute;
+    right: 80px; bottom: 100px;
+    z-index: 99;
+    pointer-events: none;
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--muted-2);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 18px;
+  }
+  #counter b { color: var(--accent); font-weight: 700; }
+  #hint {
+    position: absolute;
+    left: 80px; bottom: 100px;
+    z-index: 99;
+    pointer-events: none;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+  }
+  #stage:has(.slide.dark.active) #counter,
+  #stage:has(.slide.dark.active) #hint {
+    background: var(--night);
+    border-color: var(--night-line);
+    color: var(--night-ink);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage" role="region" aria-label="沙盘游戏中的神话与神经科学演示文稿" tabindex="0">
+
+  <section class="slide active" data-screen-label="01 封面">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Chapter 8 &amp; 9</div>
+      <div>Myth · Neuroscience · Self</div>
+    </header>
+    <div class="body">
+      <div class="cover-grid">
+        <div class="cover-copy">
+          <div class="kicker">Barbara A. Turner · 讲解幻灯</div>
+          <h1>沙盘游戏中的<br>神话与神经科学<span class="dot">。</span></h1>
+          <p class="lede" style="margin-top:34px;">本次讲解聚焦两个视角：第八章借助北欧宇宙树神话，勾勒沙盘历程中三种主要转化形态；第九章从当代脑科学出发，揭示沙盘游戏疗愈机制的生理基础。</p>
+          <div class="cover-meta">
+            <div class="item"><div class="v">第八章</div><div class="k caption">宇宙树</div></div>
+            <div class="item"><div class="v">第九章</div><div class="k caption">神经生物学</div></div>
+            <div class="item"><div class="v">自读版</div><div class="k caption">保留原文分段</div></div>
+          </div>
+        </div>
+        <div class="gc" style="--gc: 600px;">
+          <div class="ring ring-what"></div>
+          <div class="ring ring-how"></div>
+          <div class="ring ring-why"><span class="lbl lbl-why">自性</span></div>
+          <span class="lbl lbl-what">表现</span>
+          <span class="lbl lbl-how">机制</span>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>来源：Barbara A. Turner《沙盘游戏疗法手册》</div>
+      <div><b>01</b><span class="sep">/</span>封面</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="02 章节导航">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Two Views</div>
+      <div>Contents</div>
+    </header>
+    <div class="body">
+      <div class="toc">
+        <div class="kicker">两章 · 两种视角 · 一个圆环</div>
+        <div class="toc-rows">
+          <div class="toc-row">
+            <div class="no">01</div>
+            <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="#E8860C"/></svg>
+            <div class="t">母图：自性、机制、表现</div><div class="en">Master Circle</div>
+          </div>
+          <div class="toc-row">
+            <div class="no">02</div>
+            <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="#E8860C"/></svg>
+            <div class="t">核心：所有改变最终指向自性的整合</div><div class="en">Core Thesis</div>
+          </div>
+          <div class="toc-row">
+            <div class="no">03</div>
+            <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="11" fill="none" stroke="#E8860C" stroke-width="4"/><circle cx="18" cy="18" r="6" fill="none" stroke="#B5B0A4" stroke-width="1.5"/></svg>
+            <div class="t">机制：神话中的三口泉与神经科学中的关系场</div><div class="en">How Change Happens</div>
+          </div>
+          <div class="toc-row">
+            <div class="no">04</div>
+            <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#E8860C" stroke-width="4"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="none" stroke="#B5B0A4" stroke-width="1.5"/></svg>
+            <div class="t">表现：案例、创伤、连接与临床启示</div><div class="en">Clinical Evidence</div>
+          </div>
+          <div class="toc-row">
+            <div class="no">05</div>
+            <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#E8860C" stroke-width="1.5"/><circle cx="18" cy="18" r="11" fill="none" stroke="#E8860C" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="none" stroke="#E8860C" stroke-width="1.5"/></svg>
+            <div class="t">结论：亲近关系中的转化之路</div><div class="en">Integration</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>第八章：神话式发展模式 · 第九章：神经生物学因素</div>
+      <div><b>02</b><span class="sep">/</span>章节导航</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="03 母图">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Master Diagram</div>
+      <div>Self · Mechanism · Manifestation</div>
+    </header>
+    <div class="body">
+      <div class="master-grid">
+        <div class="master-fig">
+          <div class="gc" style="--gc: 660px;">
+            <div class="ring ring-what"></div>
+            <div class="ring ring-how"></div>
+            <div class="ring ring-why"><span class="lbl lbl-why">自性</span></div>
+            <span class="lbl lbl-what">表现</span>
+            <span class="lbl lbl-how">机制</span>
+          </div>
+          <svg class="gc-arrow" width="410" height="28" viewBox="0 0 410 28" aria-hidden="true">
+            <circle cx="6" cy="14" r="5" fill="#141414"/>
+            <line x1="6" y1="14" x2="386" y2="14" stroke="#141414" stroke-width="2.5"/>
+            <polygon points="386,5 408,14 386,23" fill="#141414"/>
+          </svg>
+        </div>
+        <div class="master-notes">
+          <div class="kicker" style="margin-bottom:6px;">由内向外阅读</div>
+          <div class="note">
+            <div>
+              <div class="nt">核心是自性<span>WHY</span></div>
+              <p>所有心灵改变最终都指向自性的整合：从混沌、哀悼、祭献，到更完整的自我认知与生命意义。</p>
+            </div>
+          </div>
+          <div class="note">
+            <div>
+              <div class="nt">中层是机制<span>HOW</span></div>
+              <p>第八章用宇宙树、三根树根与三眼泉水描述转化；第九章用母婴调节、边缘系统、关系中的能量与信息流解释同一过程。</p>
+            </div>
+          </div>
+          <div class="note">
+            <div>
+              <div class="nt">外层是表现<span>WHAT</span></div>
+              <p>Cary、Elizabeth、Charlie、Lilly 的沙盘呈现出黑暗下沉、疗愈回忆、主动祭献和神经连接重建等临床形态。</p>
+            </div>
+          </div>
+          <div class="caption" style="margin-top:8px;">神话、心理学与神经科学在同一个圆环中汇合</div>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>三层框架：自性 / 机制 / 表现</div>
+      <div><b>03</b><span class="sep">/</span>母图</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="04 核心命题">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Core Thesis</div>
+      <div>Why · Self</div>
+    </header>
+    <div class="body">
+      <div class="ring-grid">
+        <div class="why-disc">
+          <div class="w">自性</div>
+          <div class="ws">The Core</div>
+        </div>
+        <div class="ring-copy">
+          <div class="kicker">核心 · 心灵的整合方向</div>
+          <h2>沙盘中的改变，最终指向<span class="acc">自性整合</span>。</h2>
+          <p class="lede">第八章指出，宇宙树既是生命之树也是死亡之树：它根植大地、长向苍天，呈现成长中的对立统一。第九章则说明，关系、情感调节与大脑结构发展共同塑造心灵。</p>
+          <p class="lede" style="margin-top:20px;">两章的共同结论是：转化不是单纯的认知解释，而是在自由与受保护的关系场中，心灵和身体共同经历的重组。</p>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>核心命题：心灵改变不是直线阶段，而是围绕自性的反复组织</div>
+      <div><b>04</b><span class="sep">/</span>核心命题</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="05 宇宙树机制">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Chapter 8</div>
+      <div>How · Mythic Pattern</div>
+    </header>
+    <div class="body">
+      <div class="ring-grid">
+        <div class="ring-copy" style="max-width: 1010px;">
+          <div class="kicker">宇宙树 · 三根树根与三眼泉水</div>
+          <h2>三种转化形态，<br>没有固定顺序<span class="acc">。</span></h2>
+          <div class="pillars">
+            <div class="pillar">
+              <div class="no">泉水 01</div>
+              <div class="t">地狱之泉 · 超越</div>
+              <p>个体心灵与母体潜意识融合；改变常突然、非自愿、危险，伴随恐惧与根本性瓦解。</p>
+            </div>
+            <div class="pillar">
+              <div class="no">泉水 02</div>
+              <div class="t">命运之泉 · 疗愈与回忆</div>
+              <p>回溯以往经历，修复创伤或适应现实；产生疗愈所必需的悲伤、宽恕与责任。</p>
+            </div>
+            <div class="pillar">
+              <div class="no">泉水 03</div>
+              <div class="t">智慧之泉 · 祭献</div>
+              <p>自愿、有意识地进入潜意识；主动放松对现实的把控，为更有意义的东西放弃拥有物。</p>
+            </div>
+          </div>
+        </div>
+        <div class="gc mode-how" style="--gc: 480px;">
+          <div class="ring ring-what"></div>
+          <div class="ring ring-how"></div>
+          <div class="ring ring-why"><span class="lbl lbl-why">自性</span></div>
+          <span class="lbl lbl-what">表现</span>
+          <span class="lbl lbl-how">机制</span>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>第八章小结：转化可从任一形态开始，也不必经历全部阶段</div>
+      <div><b>05</b><span class="sep">/</span>宇宙树机制</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="06 神经生物学机制">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Chapter 9</div>
+      <div>How · Neurobiology</div>
+    </header>
+    <div class="body">
+      <div class="ring-grid">
+        <div class="gc mode-how" style="--gc: 480px;">
+          <div class="ring ring-what"></div>
+          <div class="ring ring-how"></div>
+          <div class="ring ring-why"><span class="lbl lbl-why">自性</span></div>
+          <span class="lbl lbl-what">表现</span>
+          <span class="lbl lbl-how">机制</span>
+        </div>
+        <div class="ring-copy" style="max-width: 980px;">
+          <div class="kicker">关系如何塑造心灵与大脑</div>
+          <h2>“自由与受保护”<br>是一种<span class="acc">调节机制</span>。</h2>
+          <div class="pillars">
+            <div class="pillar">
+              <div class="no">Schore</div>
+              <div class="t">母子关系塑造大脑</div>
+              <p>幼年关键期的非言语情感交流，会实质性影响儿童脑结构和神经生物学发展。</p>
+            </div>
+            <div class="pillar">
+              <div class="no">Siegel</div>
+              <div class="t">心灵在关系中形成</div>
+              <p>心智来自大脑内部以及大脑之间能量与信息的流动；人际关系体验参与塑造大脑。</p>
+            </div>
+            <div class="pillar">
+              <div class="no">Perry · Diamond</div>
+              <div class="t">创伤与可塑性</div>
+              <p>创伤阻碍高级脑结构发展；但足够安全、有挑战的人际关系可能在成年后继续激活成长。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>沙盘关系场：治疗师的包容与调节促使心灵解体、重组、再连接</div>
+      <div><b>06</b><span class="sep">/</span>神经机制</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="07 临床表现">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Clinical Forms</div>
+      <div>What · Cases</div>
+    </header>
+    <div class="body">
+      <div class="ring-grid">
+        <div class="gc mode-what" style="--gc: 470px;">
+          <div class="ring ring-what"></div>
+          <div class="ring ring-how"></div>
+          <div class="ring ring-why"><span class="lbl lbl-why">自性</span></div>
+          <span class="lbl lbl-what">表现</span>
+          <span class="lbl lbl-how">机制</span>
+        </div>
+        <div class="ring-copy" style="max-width: 1040px;">
+          <div class="kicker">案例 · 原文分段保留</div>
+          <h2>同一个圆环，<br>在不同来访者的沙盘中显形<span class="acc">。</span></h2>
+          <div class="what-cards">
+            <div class="what-card">
+              <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#E8860C" stroke-width="4"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="none" stroke="#B5B0A4" stroke-width="1.5"/></svg>
+              <div><div class="t">Cary · 地狱之泉</div><div class="d">辐射状岛屿群、凄惨阴暗氛围、默默落泪与颤抖，呈现极度黑暗和巨大能量。</div></div>
+            </div>
+            <div class="what-card">
+              <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#E8860C" stroke-width="4"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="none" stroke="#B5B0A4" stroke-width="1.5"/></svg>
+              <div><div class="t">Elizabeth · 命运之泉</div><div class="d">棺材、七只小猪仔与泉水旁的花丛，承载哀悼、遗憾，以及“生活在继续”。</div></div>
+            </div>
+            <div class="what-card">
+              <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#E8860C" stroke-width="4"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="none" stroke="#B5B0A4" stroke-width="1.5"/></svg>
+              <div><div class="t">Charlie · 疗愈与回忆</div><div class="d">足球队、恐龙、中心树、拳击场等连续沙盘，让 PTSD 症状在十次咨询后好转。</div></div>
+            </div>
+            <div class="what-card">
+              <svg class="glyph" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="#E8860C" stroke-width="4"/><circle cx="18" cy="18" r="11" fill="none" stroke="#B5B0A4" stroke-width="1.5"/><circle cx="18" cy="18" r="6" fill="none" stroke="#B5B0A4" stroke-width="1.5"/></svg>
+              <div><div class="t">Lilly · 连接重建</div><div class="d">水中的桥、鲨鱼、脑珊瑚与照料幼崽的鹈鹕，呈现从断裂到连接的重组过程。</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>表现层：象征性创作把不可见的神经与心灵过程变成可被见证的形态</div>
+      <div><b>07</b><span class="sep">/</span>临床表现</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="08 三范式整合">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Integration</div>
+      <div>Three Paradigms</div>
+    </header>
+    <div class="body">
+      <div class="big-watermark" style="width: 760px; height: 760px; left: -180px; top: 50%; transform: translateY(-50%);"></div>
+      <div class="big-watermark" style="width: 520px; height: 520px; left: -60px; top: 50%; transform: translateY(-50%);"></div>
+      <div class="big-grid">
+        <div class="big-num">3<span class="x">×</span></div>
+        <div class="big-side">
+          <div class="claim">卡尔夫、宇宙树神话与神经生物学使用不同语言，却描述了相似的心理发展过程。</div>
+          <div class="stat-row">
+            <div class="stat"><div class="v">01</div><div class="k caption">母子一体性 / 皮质下区域</div></div>
+            <div class="stat"><div class="v">02</div><div class="k caption">建立关系 / 边缘系统</div></div>
+            <div class="stat"><div class="v">03</div><div class="k caption">自性的群集 / 皮层联结</div></div>
+          </div>
+          <div class="source-list">
+            <div><b>神话语言：</b>地狱之泉、命运之泉、智慧之泉。</div>
+            <div><b>神经语言：</b>创伤、调节、整合与终身可塑性。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>三种范式：心理学 / 神话学 / 神经科学</div>
+      <div><b>08</b><span class="sep">/</span>整合</div>
+    </footer>
+  </section>
+
+  <section class="slide" data-screen-label="09 卡尔夫提醒">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Kalff</div>
+      <div>Relation</div>
+    </header>
+    <div class="body">
+      <div class="quote-wrap">
+        <div class="quote-ring"></div>
+        <div class="kicker">朵拉 · 卡尔夫的提醒</div>
+        <blockquote>“转化开始于<span class="acc">亲近的关系</span>，没有亲近的关系就没有转化。”</blockquote>
+        <div class="quote-by">
+          <div class="line"></div>
+          <div class="who">自由与受保护的空间 · 治疗师的在场与容纳</div>
+        </div>
+        <p class="lede" style="margin-top:42px; max-width: 40em;">两章最终汇聚在一个点上：沙盘游戏治疗中最重要的“工具”是治疗师本人。治疗师的在场、容纳，以及与来访者之间的关系，是促成深层转化的关键性力量。</p>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>核心启示：关系塑造大脑，也塑造心灵的转化能力</div>
+      <div><b>09</b><span class="sep">/</span>关系</div>
+    </footer>
+  </section>
+
+  <section class="slide dark" data-screen-label="10 感谢页">
+    <header class="head">
+      <div><b>Sandplay Therapy</b><span class="sep">/</span>Closing</div>
+      <div>Thank You</div>
+    </header>
+    <div class="body">
+      <div class="end-grid">
+        <div class="end-copy">
+          <div class="kicker">推荐阅读</div>
+          <h2>谢谢<span class="dot">。</span></h2>
+          <p class="lede">Barbara A. Turner《沙盘游戏疗法手册》<br><strong>第八章：沙盘游戏中的神话式发展模式——宇宙树<br>第九章：沙盘游戏中的神经生物学因素</strong></p>
+          <div class="end-cta">Myth · Relation · Brain · Self</div>
+        </div>
+        <div class="gc mode-outline" style="--gc: 540px;">
+          <div class="ring ring-what"></div>
+          <div class="ring ring-how"></div>
+          <div class="ring ring-why"><span class="lbl lbl-why">自性</span></div>
+          <span class="lbl lbl-what">表现</span>
+          <span class="lbl lbl-how">机制</span>
+        </div>
+      </div>
+    </div>
+    <footer class="foot">
+      <div>Schore · Siegel · Perry · Newberg · Diamond</div>
+      <div><b>10</b><span class="sep">/</span>感谢</div>
+    </footer>
+  </section>
+
+  <div id="counter" aria-live="polite" aria-label="第 1 页，共 10 页">01 <b>/</b> 10</div>
+  <div id="hint" aria-hidden="true">←/→ · Space 翻页</div>
+
+</div>
+
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var counter = document.getElementById('counter');
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var current = 0;
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function go(i, skipHash) {
+    current = Math.max(0, Math.min(total - 1, i));
+    for (var k = 0; k < total; k++) {
+      var isActive = k === current;
+      slides[k].classList.toggle('active', isActive);
+      slides[k].setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    }
+    counter.innerHTML = pad(current + 1) + ' <b>/</b> ' + pad(total);
+    counter.setAttribute('aria-label', '第 ' + (current + 1) + ' 页，共 ' + total + ' 页');
+    if (!skipHash) {
+      var target = '#/' + (current + 1);
+      if (location.hash !== target) {
+        try { history.replaceState(null, '', target); }
+        catch (err) { location.hash = target; }
+      }
+    }
+  }
+
+  function fromHash() {
+    var m = location.hash.match(/^#\/(\d+)$/);
+    if (m) {
+      var n = parseInt(m[1], 10);
+      if (n >= 1 && n <= total) { go(n - 1, true); return; }
+    }
+    go(0, true);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case ' ':
+      case 'PageDown':
+        e.preventDefault();
+        go(current + 1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+      case 'PageUp':
+        e.preventDefault();
+        go(current - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        go(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        go(total - 1);
+        break;
+    }
+  });
+
+  stage.addEventListener('click', function (e) {
+    if (e.clientX < window.innerWidth / 3) { go(current - 1); }
+    else { go(current + 1); }
+  });
+
+  window.addEventListener('hashchange', fromHash);
+  window.addEventListener('resize', fit);
+
+  fit();
+  fromHash();
+})();
+</script>
+</body>
+</html>

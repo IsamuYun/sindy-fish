@@ -16,11 +16,13 @@ export function useParallaxScene() {
   const sceneTwoRef = useRef(null);
   const targetRef = useRef({ x: 0, y: 0 });
   const currentRef = useRef({ x: 0, y: 0 });
-  const scrollProgressRef = useRef(0);
+  const activePageRef = useRef(0);
+  const pageProgressRef = useRef(0);
   const reduceMotionRef = useRef(false);
   const frameRef = useRef(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [uiEntered, setUiEntered] = useState(false);
+  const [activePage, setActivePage] = useState(0);
 
   useEffect(() => {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -50,13 +52,11 @@ export function useParallaxScene() {
   }, []);
 
   useEffect(() => {
-    const readScroll = () => {
-      const root = scrollRootRef.current;
-      if (!root) return;
-
-      const scrollable = root.offsetHeight - window.innerHeight;
-      scrollProgressRef.current =
-        scrollable > 0 ? clamp(window.scrollY / scrollable, 0, 1) : 0;
+    const setPage = (page) => {
+      const nextPage = page ? 1 : 0;
+      if (activePageRef.current === nextPage) return;
+      activePageRef.current = nextPage;
+      setActivePage(nextPage);
     };
 
     const updatePointer = (event) => {
@@ -71,6 +71,14 @@ export function useParallaxScene() {
       };
     };
 
+    const handleWheel = (event) => {
+      if (document.body.classList.contains('modal-open')) return;
+
+      event.preventDefault();
+      if (Math.abs(event.deltaY) < 8) return;
+      setPage(event.deltaY > 0 ? 1 : 0);
+    };
+
     const tick = () => {
       const world = worldRef.current;
       const worldEnd = worldEndRef.current;
@@ -83,40 +91,47 @@ export function useParallaxScene() {
           y: lerp(currentRef.current.y, targetRef.current.y, 0.07),
         };
 
+        const targetProgress = activePageRef.current;
+        if (reduceMotionRef.current) {
+          pageProgressRef.current = targetProgress;
+        } else {
+          pageProgressRef.current = lerp(pageProgressRef.current, targetProgress, 0.14);
+          if (Math.abs(pageProgressRef.current - targetProgress) < 0.001) {
+            pageProgressRef.current = targetProgress;
+          }
+        }
+
+        const pageProgress = clamp(pageProgressRef.current, 0, 1);
         const rx = reduceMotionRef.current ? 0 : currentRef.current.x;
         const ry = reduceMotionRef.current ? 0 : currentRef.current.y;
-        const progress = scrollProgressRef.current;
-        const worldScale = lerp(1.1, 1.24, progress);
-        world.style.opacity = '1';
-        world.style.transform = `scale(${worldScale}) translate3d(${rx * MAGNITUDE.world}px, ${ry * MAGNITUDE.world}px, 0)`;
 
-        const endOpacity = clamp((progress - 0.58) / 0.12, 0, 1);
-        const endScale = lerp(1.02, 1.12, progress);
-        worldEnd.style.opacity = String(endOpacity);
-        worldEnd.style.transform = `scale(${endScale}) translate3d(${rx * MAGNITUDE.world}px, ${ry * MAGNITUDE.world}px, 0)`;
+        const worldScale = lerp(1.04, 1.08, pageProgress);
+        const worldOffset = -10 * pageProgress;
+        world.style.opacity = String(lerp(1, 0.88, pageProgress));
+        world.style.transform = `translate3d(${rx * MAGNITUDE.world}px, calc(${worldOffset}% + ${ry * MAGNITUDE.world}px), 0) scale(${worldScale})`;
 
-        const sceneOneOpacity = clamp(1 - progress / 0.22, 0, 1);
-        sceneOne.style.opacity = String(sceneOneOpacity);
-        sceneOne.style.pointerEvents = sceneOneOpacity > 0.05 ? 'auto' : 'none';
+        const endScale = lerp(1.02, 1, pageProgress);
+        const endOffset = 100 * (1 - pageProgress);
+        worldEnd.style.opacity = String(pageProgress);
+        worldEnd.style.transform = `translate3d(${rx * MAGNITUDE.world}px, calc(${endOffset}% + ${ry * MAGNITUDE.world}px), 0) scale(${endScale})`;
 
-        const sceneTwoOpacity = clamp((progress - 0.68) / 0.16, 0, 1);
-        sceneTwo.style.opacity = String(sceneTwoOpacity);
-        sceneTwo.style.pointerEvents = sceneTwoOpacity > 0.05 ? 'auto' : 'none';
+        sceneOne.style.opacity = String(1 - pageProgress);
+        sceneOne.style.pointerEvents = pageProgress < 0.5 ? 'auto' : 'none';
+
+        sceneTwo.style.opacity = String(pageProgress);
+        sceneTwo.style.pointerEvents = pageProgress >= 0.5 ? 'auto' : 'none';
       }
 
       frameRef.current = requestAnimationFrame(tick);
     };
 
-    readScroll();
-    window.addEventListener('scroll', readScroll, { passive: true });
-    window.addEventListener('resize', readScroll);
     window.addEventListener('mousemove', updatePointer);
+    window.addEventListener('wheel', handleWheel, { passive: false });
     frameRef.current = requestAnimationFrame(tick);
 
     return () => {
-      window.removeEventListener('scroll', readScroll);
-      window.removeEventListener('resize', readScroll);
       window.removeEventListener('mousemove', updatePointer);
+      window.removeEventListener('wheel', handleWheel);
       cancelAnimationFrame(frameRef.current);
     };
   }, []);
@@ -130,14 +145,10 @@ export function useParallaxScene() {
   }, [reducedMotion]);
 
   const jumpToProgress = (progress) => {
-    const root = scrollRootRef.current;
-    if (!root) return;
-
-    const scrollable = root.offsetHeight - window.innerHeight;
-    window.scrollTo({
-      top: scrollable * clamp(progress, 0, 1),
-      behavior: reducedMotion ? 'auto' : 'smooth',
-    });
+    const nextPage = progress >= 0.5 ? 1 : 0;
+    if (activePageRef.current === nextPage) return;
+    activePageRef.current = nextPage;
+    setActivePage(nextPage);
   };
 
   return {
@@ -148,6 +159,7 @@ export function useParallaxScene() {
       sceneOneRef,
       sceneTwoRef,
     },
+    activePage,
     uiEntered,
     jumpToProgress,
   };

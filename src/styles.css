@@ -40,7 +40,7 @@ body {
 }
 
 body {
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 body.modal-open {
@@ -68,16 +68,19 @@ button {
 }
 
 #scroll-root {
-  height: 480vh;
+  height: 100vh;
+  height: 100dvh;
   position: relative;
+  overflow: hidden;
 }
 
 #stage {
-  position: sticky;
+  position: relative;
   top: 0;
   left: 0;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--color-bg);
 }
@@ -98,6 +101,7 @@ button {
 }
 
 #world {
+  z-index: 0;
   opacity: 1;
   background-position: left center;
   transform-origin: left center;
@@ -105,8 +109,9 @@ button {
 
 #world-end {
   opacity: 0;
-  transform-origin: 50% 50%;
-  z-index: 1;
+  transform-origin: center center;
+  z-index: 2;
+  box-shadow: 0 -28px 90px rgba(10, 6, 8, 0.22);
 }
 
 nav {
@@ -167,6 +172,159 @@ nav {
   display: none;
 }
 
+.card-hit-area {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.06));
+  color: var(--color-ink);
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+  text-align: left;
+}
+
+.card-hit-area span {
+  display: block;
+  font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif;
+  font-size: 21px;
+  line-height: 1.08;
+  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.48);
+}
+
+.card-hit-area small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.76);
+  font-family: 'Imprima', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
+}
+
+.card-hit-area:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.86);
+  outline-offset: -6px;
+}
+
+.space-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  position: relative;
+}
+
+.space-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(10, 6, 8, 0.28), transparent 22%),
+    linear-gradient(to top, rgba(10, 6, 8, 0.32), transparent 28%);
+  z-index: 2;
+}
+
+.space-nav {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 48px;
+}
+
+.space-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.space-hero {
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+}
+
+.space-panel {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.space-panel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transform: scale(1.02);
+}
+
+.space-page[data-space='tea-room'] .space-panel img {
+  object-position: center;
+}
+
+.space-page[data-space='pavilion'] .space-panel img {
+  object-position: center;
+}
+
+.space-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), transparent 55%);
+}
+
+.space-copy {
+  position: absolute;
+  left: clamp(24px, 5vw, 72px);
+  right: clamp(24px, 5vw, 72px);
+  bottom: clamp(74px, 12vh, 132px);
+  z-index: 2;
+  max-width: 500px;
+  text-shadow: 0 12px 36px rgba(0, 0, 0, 0.42);
+}
+
+.space-copy p {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.space-copy h1 {
+  margin: 0 0 16px;
+  font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif;
+  font-size: clamp(42px, 6vw, 82px);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.space-copy span {
+  display: block;
+  max-width: 370px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 16px;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+.space-footer {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 6;
+  transform: translateX(-50%);
+}
+
 #scene1 {
   position: absolute;
   inset: 0;
@@ -180,6 +338,7 @@ nav {
   left: 60px;
   transform: translateY(-50%);
   max-width: 440px;
+  pointer-events: auto;
 }
 
 .hero-title {
@@ -224,6 +383,49 @@ nav {
   text-wrap: pretty;
 }
 
+.hero-slide-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.slide-link {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 18px;
+  background: rgba(10, 6, 8, 0.22);
+  color: var(--color-ink);
+  display: grid;
+  gap: 7px;
+  padding: 13px 16px;
+  text-decoration: none;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.slide-link span {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  line-height: 1.25;
+}
+
+.slide-link small {
+  color: var(--color-ink-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+}
+
+.slide-link:hover,
+.slide-link:focus-visible {
+  border-color: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .hero-right {
   position: absolute;
   top: 50%;
@@ -231,6 +433,7 @@ nav {
   transform: translateY(-50%);
   display: flex;
   gap: 18px;
+  pointer-events: auto;
 }
 
 .hero-card {
@@ -651,6 +854,7 @@ button.hero-card:focus-visible {
     align-items: center;
     justify-content: space-between;
     width: 100%;
+    gap: 16px;
   }
 
   .hero-left {
@@ -696,6 +900,30 @@ button.hero-card:focus-visible {
     color: var(--color-warm-ink);
   }
 
+  .hero-slide-links {
+    justify-content: center;
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .slide-link {
+    border-color: rgba(59, 26, 10, 0.24);
+    background: rgba(255, 255, 255, 0.32);
+    color: var(--color-warm-ink);
+    padding: 10px 11px;
+  }
+
+  .slide-link span {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .slide-link small {
+    color: rgba(59, 26, 10, 0.68);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
   .hero-right {
     position: absolute;
     top: 64%;
@@ -730,6 +958,50 @@ button.hero-card:focus-visible {
   .consult-card {
     border-radius: 22px;
     padding: 22px;
+  }
+
+  .space-nav {
+    padding: 18px 20px;
+  }
+
+  .space-nav-actions {
+    gap: 16px;
+  }
+
+  .space-panel,
+  .space-hero {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .space-panel {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .space-copy {
+    left: 22px;
+    right: 22px;
+    bottom: 30px;
+  }
+
+  .space-copy h1 {
+    font-size: clamp(32px, 10vw, 44px);
+    margin-bottom: 10px;
+  }
+
+  .space-copy p {
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+
+  .space-copy span {
+    max-width: 280px;
+    font-size: 13px;
+  }
+
+  .space-footer {
+    display: none;
   }
 }
 

@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>沙盘游戏中的疗愈与转化｜第八九章讲解</title>
+<style>
+/* === FONTS === */
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;700&display=swap');
+
+/* ===========================================
+   DESIGN TOKENS — Notebook Tabs theme
+   Cream paper card on dark ground, colorful
+   index tabs on the right edge, binder holes
+   on the left. Bodoni Moda + DM Sans.
+   All values authored at 1920×1080 stage size.
+   =========================================== */
+:root {
+    /* Colors */
+    --bg-outer: #2d2d2d;          /* dark desk behind the notebook */
+    --bg-page: #f8f6f1;           /* cream paper */
+    --text-primary: #1a1a1a;
+    --text-secondary: #6b6358;
+    --rule: #d8d2c4;              /* hairline rules on paper */
+    --tab-1: #98d4bb;             /* Mint */
+    --tab-2: #c7b8ea;             /* Lavender */
+    --tab-3: #f4b8c5;             /* Pink */
+    --tab-4: #a8d8ea;             /* Sky */
+    --tab-5: #ffe6a7;             /* Cream */
+
+    /* Stage */
+    --stage-bg: var(--bg-outer);
+    --slide-bg: var(--bg-outer);
+
+    /* Typography */
+    --font-display: 'Bodoni Moda', 'Didot', serif;
+    --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+    --title-size: 150px;
+    --h2-size: 84px;
+    --subtitle-size: 30px;
+    --body-size: 26px;
+    --label-size: 17px;
+
+    /* Paper geometry (inside the 1920×1080 stage) */
+    --paper-top: 56px;
+    --paper-bottom: 56px;
+    --paper-left: 120px;
+    --paper-right: 150px;       /* leaves room for the tabs */
+    --paper-pad-x: 110px;
+    --paper-pad-y: 78px;
+
+    /* Motion */
+    --ease-page: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-normal: 0.7s;
+}
+
+/* === BASE === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   (full viewport-base.css, inlined)
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+img, video, canvas, svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+    .deck-viewport { position: static; overflow: visible; background: #fff; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+    .slide {
+        position: relative; display: block !important;
+        visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;
+        width: 1920px; height: 1080px;
+        break-after: page; page-break-after: always;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+    /* no movement: reveals fade only, chart bars render at full height */
+    .reveal { transform: none !important; }
+    .bar { transform: none !important; }
+}
+
+/* ===========================================
+   THE NOTEBOOK — paper card, binder holes, tabs
+   =========================================== */
+.paper {
+    position: absolute;
+    top: var(--paper-top);
+    bottom: var(--paper-bottom);
+    left: var(--paper-left);
+    right: var(--paper-right);
+    background: var(--bg-page);
+    border-radius: 8px;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.25),
+        0 18px 50px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    /* faint paper grain via layered gradients */
+    background-image:
+        linear-gradient(rgba(26, 26, 26, 0.018) 1px, transparent 1px),
+        linear-gradient(180deg, var(--bg-page), var(--bg-page));
+    background-size: 100% 44px, 100% 100%;
+    z-index: 1; /* paper sits above the tucked tab roots */
+}
+
+/* Binder holes — punched circles on the left margin */
+.holes {
+    position: absolute;
+    left: 38px;
+    top: 90px;
+    bottom: 90px;
+    width: 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 3;
+}
+.holes span {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--bg-outer);
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.7),
+        0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Margin rule echoing a real notebook's red line */
+.margin-rule {
+    position: absolute;
+    left: 92px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--tab-3);
+    opacity: 0.55;
+    z-index: 2;
+}
+
+/* Index tabs — vertical labels protruding past the right paper edge.
+   Positioned against the stage so 12px of each tab root tucks UNDER
+   the paper (.paper has z-index: 1, tabs have z-index: 0). */
+.tabs {
+    position: absolute;
+    right: calc(var(--paper-right) - 44px); /* 44px sticks out past the paper edge */
+    top: calc(var(--paper-top) + 60px);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    z-index: 0; /* tucked behind the paper edge */
+}
+.tab {
+    writing-mode: vertical-rl;
+    font-family: var(--font-body);
+    font-size: var(--label-size);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(26, 26, 26, 0.78);
+    width: 56px;
+    height: 158px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 10px 10px 0;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
+    opacity: 0.82;
+    transform: translateX(-6px);
+    transition: transform 0.45s var(--ease-page), opacity 0.45s var(--ease-page);
+}
+.tab-1 { background: var(--tab-1); }
+.tab-2 { background: var(--tab-2); }
+.tab-3 { background: var(--tab-3); }
+.tab-4 { background: var(--tab-4); }
+.tab-5 { background: var(--tab-5); }
+.tab.on { opacity: 1; transform: translateX(0); box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.35); }
+
+/* Content area inside the paper */
+.page {
+    position: absolute;
+    inset: 0;
+    padding: var(--paper-pad-y) var(--paper-pad-x) var(--paper-pad-y) 150px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+/* === PAGE CHROME — running head + baseline === */
+.runhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-body);
+    font-size: var(--label-size);
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 18px;
+    margin-bottom: 40px;
+}
+.runhead .no { font-weight: 700; color: var(--text-primary); }
+.baseline {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-body);
+    font-size: 15px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--rule);
+    padding-top: 16px;
+}
+
+/* === TYPOGRAPHY === */
+.display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--title-size);
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+.h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--h2-size);
+    line-height: 1.04;
+    color: var(--text-primary);
+}
+.kicker {
+    font-family: var(--font-body);
+    font-size: var(--label-size);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 22px;
+}
+.kicker .chip {
+    display: inline-block;
+    width: 30px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 12px;
+    vertical-align: baseline;
+}
+.lede {
+    font-family: var(--font-body);
+    font-size: var(--subtitle-size);
+    line-height: 1.5;
+    color: var(--text-secondary);
+    max-width: 980px;
+}
+
+/* === ENTRANCE ANIMATION === */
+.reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity var(--duration-normal) var(--ease-page),
+                transform var(--duration-normal) var(--ease-page);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.reveal:nth-child(1), .reveal.d1 { transition-delay: 0.08s; }
+.reveal:nth-child(2), .reveal.d2 { transition-delay: 0.18s; }
+.reveal:nth-child(3), .reveal.d3 { transition-delay: 0.28s; }
+.reveal:nth-child(4), .reveal.d4 { transition-delay: 0.38s; }
+.reveal:nth-child(5), .reveal.d5 { transition-delay: 0.48s; }
+.reveal:nth-child(6), .reveal.d6 { transition-delay: 0.58s; }
+
+/* === COVER === */
+.cover-meta {
+    display: flex;
+    gap: 26px;
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: 20px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 44px;
+}
+.cover-swatches { display: flex; gap: 10px; }
+.cover-swatches i {
+    width: 44px; height: 18px; border-radius: 4px; display: inline-block;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+}
+.cover-edition {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 34px;
+    color: var(--text-secondary);
+    margin-top: 26px;
+}
+
+/* === CONTENTS (index page) === */
+.toc { display: flex; flex-direction: column; margin-top: 8px; }
+.toc-row {
+    display: flex;
+    align-items: baseline;
+    gap: 26px;
+    padding: 26px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-family: var(--font-body);
+}
+.toc-row:last-child { border-bottom: none; }
+.toc-chip { width: 38px; height: 16px; border-radius: 4px; flex: none; align-self: center; }
+.toc-no {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    width: 64px;
+    flex: none;
+}
+.toc-title { font-family: var(--font-display); font-size: 40px; font-weight: 400; color: var(--text-primary); }
+.toc-dots { flex: 1; border-bottom: 2px dotted var(--rule); transform: translateY(-9px); }
+.toc-pg { font-size: 22px; letter-spacing: 0.18em; color: var(--text-secondary); }
+
+/* === SECTION DIVIDER === */
+.divider-no {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 430px;
+    line-height: 0.85;
+    color: transparent;
+    -webkit-text-stroke: 2px var(--text-primary);
+}
+.divider-wrap { display: flex; align-items: center; gap: 90px; flex: 1; }
+.divider-side .h2 { margin-bottom: 24px; }
+.divider-bar { width: 120px; height: 16px; border-radius: 4px; margin-bottom: 34px; }
+
+/* === BULLETS === */
+.points { display: flex; flex-direction: column; gap: 30px; margin-top: 10px; }
+.point { display: flex; gap: 30px; align-items: flex-start; max-width: 1180px; }
+.point .pin {
+    flex: none;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+.point .pin svg { width: 26px; height: 26px; }
+.point h3 { font-family: var(--font-display); font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.point p { font-family: var(--font-body); font-size: var(--body-size); line-height: 1.5; color: var(--text-secondary); }
+
+/* === QUOTE === */
+.quote-mark {
+    font-family: var(--font-display);
+    font-size: 220px;
+    line-height: 0.6;
+    color: var(--tab-2);
+    margin-bottom: 12px;
+}
+.quote-text {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 66px;
+    line-height: 1.25;
+    color: var(--text-primary);
+    max-width: 1280px;
+}
+.quote-attr {
+    font-family: var(--font-body);
+    font-size: 22px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 44px;
+}
+
+/* === BIG STAT === */
+.stat-wrap { display: flex; align-items: center; gap: 90px; flex: 1; }
+.stat-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 300px;
+    line-height: 0.9;
+    color: var(--text-primary);
+}
+.stat-num .unit {
+    display: block;
+    font-size: 120px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1;
+    margin-top: 18px;
+    color: var(--text-secondary);
+}
+.stat-side { max-width: 560px; border-left: 4px solid var(--tab-1); padding-left: 44px; }
+.stat-side h3 { font-family: var(--font-display); font-size: 40px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); }
+.stat-side p { font-family: var(--font-body); font-size: var(--body-size); line-height: 1.55; color: var(--text-secondary); }
+
+/* === BAR CHART (pure CSS) === */
+.chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 70px;
+    height: 480px;
+    margin-top: 30px;
+    padding: 0 30px;
+    border-bottom: 2px solid var(--text-primary);
+}
+.bar-group { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; flex: 1; }
+.bar {
+    width: 130px;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.1);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.9s var(--ease-page);
+}
+.slide.visible .bar { transform: scaleY(1); }
+.slide.visible .bar.b2 { transition-delay: 0.15s; }
+.slide.visible .bar.b3 { transition-delay: 0.3s; }
+.slide.visible .bar.b4 { transition-delay: 0.45s; }
+.bar-val {
+    position: absolute;
+    top: -44px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 30px;
+    color: var(--text-primary);
+}
+.bar-label {
+    font-family: var(--font-body);
+    font-size: 20px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 18px;
+}
+
+/* === COMPARISON === */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-top: 16px; flex: 1; align-content: start; }
+.col {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 44px 48px;
+    background: rgba(255, 255, 255, 0.45);
+}
+.col.hot { border: 2px solid var(--text-primary); box-shadow: 8px 8px 0 var(--tab-4); }
+.col h3 {
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 26px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+}
+.col ul { list-style: none; }
+.col li {
+    font-family: var(--font-body);
+    font-size: 25px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    padding: 10px 0 10px 34px;
+    position: relative;
+}
+.col li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 22px;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--rule);
+}
+.col.hot li::before { background: var(--tab-4); }
+.col.hot li { color: var(--text-primary); }
+
+/* === PRINCIPLE GRID 2×2 === */
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 12px; flex: 1; align-content: start; }
+.gcard {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 36px 40px;
+    background: rgba(255, 255, 255, 0.45);
+    position: relative;
+    overflow: hidden;
+}
+.gcard::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 12px;
+    background: var(--edge, var(--tab-1));
+}
+.gcard h3 { font-family: var(--font-display); font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+.gcard p { font-family: var(--font-body); font-size: 23px; line-height: 1.5; color: var(--text-secondary); }
+.gcard .gno {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 26px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+/* === CLOSING === */
+.close-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.close-wrap .display em { font-style: italic; font-weight: 400; }
+.close-links { display: flex; gap: 56px; margin-top: 60px; }
+.lk {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-body);
+    font-size: 22px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    border-bottom: 3px solid var(--tab-3);
+    padding-bottom: 8px;
+}
+.lk svg { width: 26px; height: 26px; }
+
+/* === DECK CONTROLS (outside the scaled stage) === */
+.deck-controls {
+    font-family: var(--font-body);
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    color: rgba(248, 246, 241, 0.55);
+    background: rgba(26, 26, 26, 0.55);
+    border: 1px solid rgba(248, 246, 241, 0.18);
+    padding: 8px 18px;
+    border-radius: 999px;
+    user-select: none;
+}
+.deck-controls .cur { color: var(--tab-1); font-weight: 700; }
+
+/* === CHINESE TEACHING DECK CONTENT === */
+.cover-cn .display {
+    font-size: 128px;
+    line-height: 1.05;
+}
+.cover-points {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 38px;
+    max-width: 1120px;
+}
+.cover-points span {
+    font-family: var(--font-body);
+    font-size: 25px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    padding-left: 28px;
+    position: relative;
+}
+.cover-points span::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 16px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--tab-1);
+}
+.cover-note {
+    margin-top: 28px;
+    font-size: 23px;
+    max-width: 1180px;
+}
+.lesson-title {
+    margin-bottom: 26px;
+    max-width: 1160px;
+    letter-spacing: 0;
+}
+.lesson-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+    gap: 42px;
+    align-items: start;
+    flex: 1;
+    min-height: 0;
+}
+.lesson-grid.more-points {
+    grid-template-columns: minmax(0, 1.5fr) minmax(340px, 0.5fr);
+}
+.compact-points {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.compact-point {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+.compact-point .pin {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16);
+}
+.compact-point .pin svg {
+    width: 23px;
+    height: 23px;
+}
+.compact-point p {
+    font-family: var(--font-body);
+    font-size: 25px;
+    line-height: 1.48;
+    color: var(--text-primary);
+}
+.speaker-note {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 30px 34px;
+    background: rgba(255, 255, 255, 0.48);
+    box-shadow: 8px 8px 0 var(--tab-5);
+}
+.speaker-note strong {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+}
+.speaker-note p {
+    font-family: var(--font-body);
+    font-size: 22px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+.dense-note p { font-size: 20px; line-height: 1.5; }
+.question-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 12px;
+}
+.q-card {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 34px 36px;
+    background: rgba(255, 255, 255, 0.5);
+    min-height: 160px;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 22px;
+    align-items: start;
+}
+.q-card span {
+    font-family: var(--font-display);
+    font-size: 48px;
+    line-height: 1;
+    color: var(--text-secondary);
+}
+.q-card p {
+    font-family: var(--font-body);
+    font-size: 26px;
+    line-height: 1.45;
+    color: var(--text-primary);
+}
+
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+    <main class="deck-stage" id="deckStage" aria-label="Slide deck">
+
+        <!-- === SLIDE 1: 封面 === -->
+        <section class="slide active visible" data-screen-label="01 封面">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 01</span><span>沙盘游戏疗法 · 第八九章</span></div>
+                    <div class="close-wrap cover-cn">
+                        <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-1);"></span>第八章 · 第九章讲解文稿</p>
+                        <h1 class="display reveal d2">沙盘游戏中的<br><em style="font-weight:400;">疗愈与转化</em></h1>
+                        <p class="cover-edition reveal d3">从宇宙树神话到神经生物学视角</p>
+                        <div class="cover-points reveal d4">
+                            <span>第八章：用宇宙树神话理解沙盘游戏中的发展模式</span>
+                            <span>第九章：用神经生物学理解沙盘游戏中的关系、创伤与转化</span>
+                            <span>核心问题：心灵如何在象征、关系与安全空间中发生改变？</span>
+                        </div>
+                        <p class="lede reveal d5 cover-note">这两章分别从神话和神经科学两个维度解释沙盘游戏中的疗愈机制。神话提供心灵转化的象征地图，神经生物学解释关系和体验如何影响大脑与心理发展。</p>
+                    </div>
+                    <div class="baseline"><span>封面</span><span>01 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1 on">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 2: 两章的整体逻辑 === -->
+        <section class="slide" data-screen-label="02 两章的整体逻辑">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 02</span><span>第2页 · 导入</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-1);"></span>两章的整体逻辑</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">同一个问题，两个解释框架</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>神话框架：宇宙树象征心灵成长、自性化与转化</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>临床框架：沙盘呈现来访者的象征性过程</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>神经生物学框架：关系体验影响大脑发育、情绪调节与整合能力</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>三者共同指向：疗愈发生在关系、象征和深层心理秩序的变化中</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>作者并不是把神话和科学对立起来，而是把它们作为不同语言：神话讲心灵如何体验变化，神经生物学讲变化如何在身体和大脑层面发生。</p></div>
+                    </div>
+                    <div class="baseline"><span>导入</span><span>02 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1 on">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 3: 第八章核心意象：宇宙树 === -->
+        <section class="slide" data-screen-label="03 第八章核心意象：宇宙树">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 03</span><span>第3页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>第八章核心意象：宇宙树</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:56px;">宇宙树：心灵成长的神话地图</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>宇宙树位于世界中心，连接天空、大地与地下</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>它既是生命之树，也是死亡之树</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>它不断生长，也不断被啃噬和破坏</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>象征意义：个体成长包含冲突、痛苦、失去、整合与重生</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>宇宙树不是静态的“完美生命”象征，而是一个持续承受拉扯的生命系统。这很像沙盘中的心理发展：改变常常伴随着混乱、痛苦和新的秩序。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>03 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 4: 宇宙树与自性化 === -->
+        <section class="slide" data-screen-label="04 宇宙树与自性化">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 04</span><span>第4页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>宇宙树与自性化</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">从自我到自性的回归</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>宇宙树根植于大地，伸向天空，象征对立统一</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>它连接意识与潜意识，像一条通往内心深处的道路</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>它提示个体生命并非只由自我掌控，还受更深层自性指引</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>沙盘作品中的变化，可被理解为自我逐渐整合自性的过程</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>在荣格取向里，自性不是普通意义上的“自我”，而是更完整、更深层的心理中心。沙盘中的象征变化，常常是在帮助自我靠近这个中心。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>04 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 5: 宇宙树的三根树根 === -->
+        <section class="slide" data-screen-label="05 宇宙树的三根树根">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 05</span><span>第5页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>宇宙树的三根树根</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">三口泉水，三种转化路径</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>地狱之泉：尼福尔海姆，黑暗、下沉、瓦解与超越</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>命运之泉：诺伦三女神，记忆、疗愈、哀悼与命运</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>智慧之泉：密米尔，祭献、主动进入潜意识与获得洞察</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>三种路径不一定按固定顺序出现</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这三口泉水对应三种心理改变方式。临床上，来访者可能从任意一种路径开始，也可能在不同路径之间来回移动。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>05 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 6: 三种发展模式对照 === -->
+        <section class="slide" data-screen-label="06 三种发展模式对照">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 06</span><span>第6页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>三种发展模式对照</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">神话、心理发展与沙盘历程</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>地狱之泉：对应母子一体性、原始关系、深层超越</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>命运之泉：对应与母亲建立关系、记忆修复、疗愈创伤</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>智慧之泉：对应自性的群集、主动探索、祭献式转化</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8c3 0 5-2 5-5 0 3 2 5 5 5M6 15c3 0 6-2 6-6 0 4 3 6 6 6"/><path d="M8 21h8"/></svg></span>
+                                <p>重点：不是固定阶段表，而是理解沙盘变化的三种入口</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>作者特别强调，沙盘历程并不总是线性发展。理论的价值不是用来套模板，而是帮助治疗师理解不同类型的心理运动。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>06 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 7: 地狱之泉：超越功能 === -->
+        <section class="slide" data-screen-label="07 地狱之泉：超越功能">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 07</span><span>第7页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>地狱之泉：超越功能</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">从黑暗深处开始的转化</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>地狱之泉象征心灵最深层、最原始的潜意识</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>毒龙啃噬树根，象征潜意识不断冲击意识</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>当自我停滞或失稳时，心灵可能被迫进入黑暗深处</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>转化特点：剧烈、突然、恐惧、瓦解，但也可能带来新生</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这类变化不是来访者“想明白”后主动选择的，而是心理结构已经无法维持旧秩序，必须通过瓦解来释放新的心理内容。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>07 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 8: 沙盘中的地狱之泉 === -->
+        <section class="slide" data-screen-label="08 沙盘中的地狱之泉">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 08</span><span>第8页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>沙盘中的地狱之泉</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">黑暗、混沌与重新组织</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>沙盘可能呈现强烈黑暗、混乱、冲突和巨大能量</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>来访者可能体验到恐惧、冷感、哭泣、失控或无力</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>自我边界被突破，旧有认知受到冲击</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>治疗师需要提供稳定、细致、持续的容纳</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这一阶段最考验治疗师。治疗师不能急于解释或推动，而要像一个稳定容器，让来访者有机会慢慢整合剧烈出现的新内容。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>08 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 9: 地狱之泉案例：Cary === -->
+        <section class="slide" data-screen-label="09 地狱之泉案例：Cary">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 09</span><span>第9页 · 宇宙树</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-2);"></span>地狱之泉案例：Cary</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:56px;">Cary：下沉到心灵黑暗处</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>Cary 的沙盘历程从地狱之泉式的转化开始</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>她的作品呈现紧迫、阴暗、能量强烈的氛围</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>制作沙盘时出现哭泣、寒冷感、身体颤抖</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>说明深层潜意识内容正在冲击并重组自我</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>Cary 的例子说明，沙盘中的黑暗并不一定是失败或退化。它可能是心理系统正在重新组织的信号。</p></div>
+                    </div>
+                    <div class="baseline"><span>宇宙树</span><span>09 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2 on">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 10: 命运之泉：疗愈与回忆 === -->
+        <section class="slide" data-screen-label="10 命运之泉：疗愈与回忆">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 10</span><span>第10页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>命运之泉：疗愈与回忆</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">记忆、命运与创伤修复</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>命运之泉由诺伦三女神守护</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>它关联过去、现在、未来，也关联个体生命轨迹</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>核心功能：回忆、哀悼、宽恕、承担责任</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>沙盘中的疗愈常通过恢复被遗忘或被压抑的经验来发生</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>命运之泉强调的不是剧烈瓦解，而是把断裂的记忆、创伤和生命经验重新带回心灵整体之中。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>10 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 11: 诺伦三女神的心理意义 === -->
+        <section class="slide" data-screen-label="11 诺伦三女神的心理意义">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 11</span><span>第11页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>诺伦三女神的心理意义</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">三个疗愈问题</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>兀儿德：我是谁？我的独特生命潜能是什么？</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>薇儿丹蒂：知道真我后，我此刻该如何回应？</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>诗寇蒂：还有什么未完成？我需要哀悼、宽恕或承担什么？</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>三个问题共同指向个体与自性的重新协调</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这三个问题很适合转化为临床理解工具。它们帮助治疗师看到来访者是在寻找身份、行动方向，还是在处理未完成的伤痛。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>11 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 12: 沙盘中的命运之泉 === -->
+        <section class="slide" data-screen-label="12 沙盘中的命运之泉">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 12</span><span>第12页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>沙盘中的命运之泉</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:56px;">疗愈不一定需要完整的深层转化</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>来访者可能通过沙盘回忆起创伤、缺失或家族文化记忆</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>疗愈常伴随悲伤、哀悼、宽恕和重新赋义</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>有些个案并不会经历完整的自性显现或超越过程</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>但只要创伤内容与心灵中心重新连接，治疗仍然有效</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这一点很重要：沙盘游戏不只有一种“标准成功路径”。有些来访者需要的就是回忆、哀悼和修复。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>12 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 13: 命运之泉案例：Elizabeth 与 Cary === -->
+        <section class="slide" data-screen-label="13 命运之泉案例：Elizabeth 与 Cary">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 13</span><span>第13页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>命运之泉案例：Elizabeth 与 Cary</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">哀悼如何成为疗愈</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>Elizabeth 在沙盘中哀悼此生无子的遗憾</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>伤痛被放置在神圣空间中，生命仍继续流动</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>Cary 通过坟冢、天使、宝石和破碎的心，表达对死亡动物的哀悼</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>沙盘让无法言说的悲伤获得可见形式</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这类沙盘的重点不是消除悲伤，而是让悲伤被看见、被安放、被心灵重新接纳。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>13 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 14: 命运之泉案例：Charlie === -->
+        <section class="slide" data-screen-label="14 命运之泉案例：Charlie">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 14</span><span>第14页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>命运之泉案例：Charlie</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">创伤后的力量恢复</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>Charlie 因车祸后创伤反应进入治疗</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>系列沙盘呈现对抗、保护、中心树木、幼崽和拳击场等主题</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>治疗结束时睡眠和骑车焦虑明显改善</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>说明短程沙盘也可能通过力量恢复实现疗愈</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>Charlie 的个案说明，疗愈有时并不表现为复杂的自性化过程，而是通过对中心、保护和力量的反复象征化，让儿童恢复安全感和掌控感。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>14 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 15: 智慧之泉：祭献 === -->
+        <section class="slide" data-screen-label="15 智慧之泉：祭献">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 15</span><span>第15页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>智慧之泉：祭献</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">主动进入潜意识</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>智慧之泉由密米尔守护，象征智慧与洞察</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>与地狱之泉不同，它强调主动、自愿地接近潜意识</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>核心动作是“祭献”：放下部分自我控制，换取更深智慧</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>适用于已有较高心理准备和内在探索经验的来访者</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>智慧之泉不是更高级的路径，而是另一种路径。它要求个体能够相对主动地承认自我的局限，并愿意让更深层的内容浮现。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>15 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 16: 奥丁的祭献象征 === -->
+        <section class="slide" data-screen-label="16 奥丁的祭献象征">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 16</span><span>第16页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>奥丁的祭献象征</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">为了洞察而放下控制</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>奥丁为获得智慧牺牲一只眼睛</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>他倒吊在宇宙树上，经历象征性的死亡与重生</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>心理意义：自我向自性献祭，放弃单一的意识视角</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>新的能力来自对未知的承受与整合</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>“失去一只眼睛”可以理解为放弃单一理性视角。个体不再只依赖自我控制，而是接受潜意识、象征和自性的指引。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>16 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 17: 沙盘中的智慧之泉 === -->
+        <section class="slide" data-screen-label="17 沙盘中的智慧之泉">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 17</span><span>第17页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>沙盘中的智慧之泉</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">沙盘作为祭坛</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>来访者有意识地投入沙盘，主动与潜意识相遇</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>沙盘成为放置旧身份、旧控制方式和未知内容的祭坛</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>过程可能带来洞察，也可能伴随风险和痛苦</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>结果常表现为与自性的关系更协调，现实行动获得新方向</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>当来访者带着明确的内在问题进入沙盘，愿意放下已有答案，沙盘就不仅是表达工具，也成为一种转化仪式。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>17 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 18: 智慧之泉案例：Elizabeth 的职业转化 === -->
+        <section class="slide" data-screen-label="18 智慧之泉案例：Elizabeth 的职业转化">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 18</span><span>第18页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>智慧之泉案例：Elizabeth 的职业转化</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">牺牲旧身份，迎接新生命</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>Elizabeth 在职业发展中陷入瓶颈</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>多年后再次进入沙盘游戏</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>沙盘中“医生身份”的死亡象征旧职业自我的终结</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>旧身份的祭献带来内在与外在生活关系的重大转化</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这个案例说明，祭献式转化不一定是放弃现实生活，而是放下过时的身份认同，让新的生命方向有空间出现。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>18 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 19: 第八章小结 === -->
+        <section class="slide" data-screen-label="19 第八章小结">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 19</span><span>第19页 · 三口泉</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-3);"></span>第八章小结</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">三种沙盘转化方式</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>超越：被迫下沉，旧自我瓦解，新内容浮现</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>疗愈与回忆：创伤、悲伤和未完成经验被重新整合</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>祭献：主动放下控制，向潜意识和自性开放</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="8" rx="7" ry="3"/><path d="M5 8v8c0 1.7 3.1 3 7 3s7-1.3 7-3V8"/><path d="M8 13c2.4 1 5.6 1 8 0"/></svg></span>
+                                <p>三种方式都服务于自我与自性的重新协调</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>第八章的重点是：沙盘中的变化不只是一种心理技术效果，而是深层心灵秩序的更新。宇宙树提供了一张理解这些变化的象征地图。</p></div>
+                    </div>
+                    <div class="baseline"><span>三口泉</span><span>19 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3 on">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 20: 第九章核心问题 === -->
+        <section class="slide" data-screen-label="20 第九章核心问题">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 20</span><span>第20页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>第九章核心问题</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:56px;">沙盘疗愈如何发生在大脑与关系中？</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>神经生物学关注大脑结构、情绪调节和关系经验</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>早期母婴关系深刻影响儿童大脑发育</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>沙盘中的“自由与受保护的空间”重现了一种安全依恋环境</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>治疗关系和象征过程共同促进心理与神经系统的整合</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>第九章把前面神话化的内容转入科学语言：为什么安全、容纳、非言语互动和象征创作会有疗愈效果？</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>20 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 21: 母子一体性与脑发育 === -->
+        <section class="slide" data-screen-label="21 母子一体性与脑发育">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 21</span><span>第21页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>母子一体性与脑发育</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">关系塑造大脑</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>Schore 认为主要照料者会影响婴儿脑结构发育</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>母婴之间的非言语情感交流会调节神经激素和神经递质</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>早期关系影响社会情感功能和自我调节能力</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>这呼应卡尔夫关于母子一体性的重要观点</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>卡尔夫认为疗愈要回到母系水平，神经生物学则说明：早期关系确实会影响大脑结构和情绪调节系统。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>21 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 22: 人际神经生物学视角 === -->
+        <section class="slide" data-screen-label="22 人际神经生物学视角">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 22</span><span>第22页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>人际神经生物学视角</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">心理在关系中形成</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>Siegel 认为心理源于大脑内部以及大脑之间的信息与能量流动</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>人际关系经验会塑造大脑结构与功能</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>治疗师与来访者之间的非言语互动，会影响双方的心理状态</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>沙盘中的共同观看和共同体验，形成重要的关系场</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>在沙盘游戏中，治疗师不是旁观的记录者。治疗师的稳定、关注和情绪调节能力，会参与来访者的心理变化。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>22 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 23: 边缘系统与情感调节 === -->
+        <section class="slide" data-screen-label="23 边缘系统与情感调节">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 23</span><span>第23页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>边缘系统与情感调节</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">情绪、依恋与游戏</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>边缘系统影响社会认知、身体调节、情绪调节和依恋行为</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>婴儿与照料者之间的情感同步促进脑结构成熟</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>游戏和愉快互动帮助儿童发展情绪自我调节能力</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>沙盘游戏通过象征性游戏重新激活情绪与关系的发展过程</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>沙盘中的“游戏”不是简单娱乐，而是让心灵以早期发展方式重新工作。身体、情绪、象征和关系共同参与其中。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>23 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 24: 自由与受保护的空间 === -->
+        <section class="slide" data-screen-label="24 自由与受保护的空间">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 24</span><span>第24页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>自由与受保护的空间</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">沙盘疗愈的基本条件</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>自由：来访者可以不被评判地表达内在内容</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>保护：治疗关系提供稳定、安全和边界</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>两者共同帮助来访者放松意识控制，进入更深心理层面</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>治疗师的容纳与调节作用，是转化发生的重要条件</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>沙盘的疗愈力不只来自沙具和沙子本身，而来自“沙盘、来访者、治疗师”共同构成的安全场。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>24 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 25: 大脑分层结构与创伤 === -->
+        <section class="slide" data-screen-label="25 大脑分层结构与创伤">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 25</span><span>第25页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>大脑分层结构与创伤</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">创伤为何会阻碍发展？</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>大脑从较低层的生存功能，逐步发展到情绪和认知功能</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>创伤会让个体持续处于警觉和恐惧状态</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>长期不安全会影响更高层脑结构的发展与整合</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>早期创伤可能损害情绪调节、依恋和抗压能力</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>如果一个人长期处于威胁中，大脑会优先服务于生存，而不是探索、关系和整合。沙盘治疗提供重新经验安全的机会。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>25 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 26: 神经可塑性与沙盘治疗 === -->
+        <section class="slide" data-screen-label="26 神经可塑性与沙盘治疗">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 26</span><span>第26页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>神经可塑性与沙盘治疗</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">大脑仍然可以重新组织</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>研究表明，大脑在成年后仍具有成长和重组可能</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>安全关系可能重新激活健康的依恋体验</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>沙盘通过身体接触、象征操作和情绪共鸣激活心理系统</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>来访者有机会重新组织早期受损或缺失的发展经验</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这给治疗带来希望：即使早期发展受损，后来的安全关系和积极参与仍可能促进新的心理组织。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>26 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 27: 情感调节与自性发展 === -->
+        <section class="slide" data-screen-label="27 情感调节与自性发展">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 27</span><span>第27页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>情感调节与自性发展</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">稳定自我感来自关系调节</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>母亲在早期承担类似“辅助调节系统”的功能</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>婴儿通过关系中的情绪调节逐渐形成稳定自我感</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>沙盘中治疗师的调节功能，有助于来访者恢复内在秩序</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>自性的体验可理解为更深层的整合感、意义感和目标感</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>从神经生物学看，所谓自性化并不是抽象玄学，而是个体逐渐形成更稳定、更有意义、更整合的生命体验。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>27 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 28: 神话形成与神秘体验 === -->
+        <section class="slide" data-screen-label="28 神话形成与神秘体验">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 28</span><span>第28页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>神话形成与神秘体验</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">大脑天生寻求意义与整合</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>Newberg 的研究指出，神秘体验具有神经生物学基础</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>人脑具有趋向整体、统一和意义的动力</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>神话帮助人类解释未知、缓解焦虑、组织经验</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>沙盘中的象征也承担类似功能：把不可理解的内在经验转化为可承受的形式</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>神话不是过时的故事，而是人类心灵组织经验的一种方式。沙盘中的象征创作，也是在为混乱经验寻找意义。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>28 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 29: 八个认知操作与象征性过程 === -->
+        <section class="slide" data-screen-label="29 八个认知操作与象征性过程">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 29</span><span>第29页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>八个认知操作与象征性过程</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:56px;">象征如何帮助心灵解决困境？</h2>
+                    <div class="lesson-grid more-points">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>整体：看到关系与整体结构</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>分解：把复杂经验拆成部分</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>抽象：从经验中形成概念</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>量化：识别时间、空间和模式</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>因果：寻找原因与解释</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>二分：形成对立双方</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>存在：让心理内容获得现实感</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>情感：让认知过程带有情绪能量</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这些操作共同帮助心灵处理未知和焦虑。沙盘中的象征，正是这些心理操作可视化后的结果。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>29 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 30: 左右脑与超越功能 === -->
+        <section class="slide" data-screen-label="30 左右脑与超越功能">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 30</span><span>第30页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>左右脑与超越功能</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">新的心理内容如何出现？</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>未知和威胁会激发心理寻找解释</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>因果操作寻找原因，二分操作形成对立</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>左脑偏向理性分析，右脑偏向图像、情感和整体体验</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 7 2 4 4 0 0 0 7-3V7a4 4 0 0 0-7-2 4 4 0 0 0-3-2z"/><path d="M12 5v14M8 9h4M12 9h4M7 14h5M12 14h5"/></svg></span>
+                                <p>当对立内容形成新的连接，新的象征和理解就可能出现</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这与荣格的超越功能相呼应：对立并不是简单消除，而是在张力中产生新的第三者，也就是新的心理产物。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>30 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 31: Lilly案例：重新建立连接 === -->
+        <section class="slide" data-screen-label="31 Lilly案例：重新建立连接">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 31</span><span>第31页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>Lilly案例：重新建立连接</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">创伤后的桥正在形成</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>Lilly 是曾被母亲遗弃的小女孩</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>早期沙盘中出现水中的桥、鲨鱼、海豹母子、蜗牛家庭和海马等意象</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>桥象征新的连接正在形成，但仍处在危险和未完成状态中</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>后续沙盘中，照料与保护关系更加稳定，显示内在连接逐渐完成</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>Lilly 的案例很好地说明了沙盘如何通过象征呈现“连接”的形成过程。桥不只是物件，而是心理结构正在修复的形象。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>31 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 32: 第九章小结 === -->
+        <section class="slide" data-screen-label="32 第九章小结">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 32</span><span>第32页 · 神经生物学</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-4);"></span>第九章小结</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:56px;">神经生物学给沙盘治疗的启示</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>早期关系影响大脑、情绪调节和自我发展</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>治疗关系中的安全与共情具有真实的调节作用</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>沙盘通过身体、象征、图像和关系促进心理整合</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>自由与受保护的空间，是疗愈和转化的重要神经心理条件</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>第九章最重要的启示是：沙盘治疗不是单纯的象征解释，而是一个关系性、身体性、情绪性和神经心理性的整体过程。</p></div>
+                    </div>
+                    <div class="baseline"><span>神经生物学</span><span>32 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4 on">神经</span><span class="tab tab-5">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 33: 两章综合对照 === -->
+        <section class="slide" data-screen-label="33 两章综合对照">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 33</span><span>第33页 · 综合</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-5);"></span>两章综合对照</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">神话语言与科学语言的汇合</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>母子一体性：地狱之泉；早期边缘系统和皮质下结构发展</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>与母亲建立关系：命运之泉；情绪调节和依恋组织</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>自性的群集：智慧之泉；皮层—边缘系统整合和稳定自我感</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>三种语言共同描述：心灵从混乱走向整合</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>神话说的是树根、泉水、毒龙和智慧；神经科学说的是边缘系统、依恋、调节和整合。它们描述的是同一类深层变化。</p></div>
+                    </div>
+                    <div class="baseline"><span>综合</span><span>33 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5 on">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 34: 对沙盘治疗师的实践启示 === -->
+        <section class="slide" data-screen-label="34 对沙盘治疗师的实践启示">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 34</span><span>第34页 · 综合</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-5);"></span>对沙盘治疗师的实践启示</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">治疗师需要做什么？</h2>
+                    <div class="lesson-grid more-points">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-4);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>识别来访者当前处于哪类转化模式中</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>不急于解释沙盘，而是先提供稳定容纳</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>尊重黑暗、哀悼、混乱和沉默的心理意义</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>关注象征是否与心灵中心、自性或资源点建立连接</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M6 18c1-5 4-8 6-8s5 3 6 8M8 18v-4M12 18v-6M16 18v-4"/></svg></span>
+                                <p>通过自由与受保护的空间，促进来访者自发整合</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>治疗师的核心能力不是“看懂所有象征”，而是能在来访者的象征性过程中保持理解、稳定和敬畏。</p></div>
+                    </div>
+                    <div class="baseline"><span>综合</span><span>34 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5 on">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 35: 结语 === -->
+        <section class="slide" data-screen-label="35 结语">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 35</span><span>第35页 · 综合</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-5);"></span>结语</p>
+                    <h2 class="h2 lesson-title reveal d2" style="font-size:62px;">转化始于关系</h2>
+                    <div class="lesson-grid ">
+                        <div class="compact-points">
+                            <div class="compact-point reveal d3">
+                                <span class="pin" style="background: var(--tab-5);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 3"/></svg></span>
+                                <p>沙盘游戏中的疗愈发生在象征、身体、关系和自性之间</p>
+                            </div>
+                            <div class="compact-point reveal d4">
+                                <span class="pin" style="background: var(--tab-1);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 3"/></svg></span>
+                                <p>宇宙树提醒我们：成长伴随痛苦，也包含重生</p>
+                            </div>
+                            <div class="compact-point reveal d5">
+                                <span class="pin" style="background: var(--tab-2);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 3"/></svg></span>
+                                <p>神经生物学提醒我们：安全关系能真实改变心理与大脑</p>
+                            </div>
+                            <div class="compact-point reveal d6">
+                                <span class="pin" style="background: var(--tab-3);"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 3"/></svg></span>
+                                <p>沙盘游戏的核心，是在亲近而受保护的关系中，让心灵重新找到秩序</p>
+                            </div>
+                        </div>
+                        <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这两章最终回到同一个观点：无论个人、家庭还是文化，真正的转化都从关系开始。沙盘游戏正是在一个小小的容器中，为这种转化创造条件。</p></div>
+                    </div>
+                    <div class="baseline"><span>综合</span><span>35 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5 on">综合</span>
+            </div>
+        </section>
+
+        <!-- === SLIDE 36: 讨论问题 === -->
+        <section class="slide" data-screen-label="36 讨论问题">
+            <div class="paper">
+                <div class="holes"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <div class="margin-rule"></div>
+                <div class="page">
+                    <div class="runhead"><span class="no">No. 36</span><span>讨论与收束</span></div>
+                    <p class="kicker reveal d1"><span class="chip" style="background: var(--tab-5);"></span>课堂讨论</p>
+                    <h2 class="h2 lesson-title reveal d2">思考与讨论</h2>
+                    <div class="question-list">
+                        <div class="q-card reveal d3"><span>01</span><p>在沙盘作品中，如何区分“混乱”是失控，还是转化的前奏？</p></div>
+                        <div class="q-card reveal d4"><span>02</span><p>如果来访者只呈现疗愈与回忆，而没有明显自性显现，治疗是否仍然有效？</p></div>
+                        <div class="q-card reveal d5"><span>03</span><p>治疗师如何在“不解释过度”和“积极理解象征”之间保持平衡？</p></div>
+                        <div class="q-card reveal d6"><span>04</span><p>神话语言和神经科学语言，分别能为临床理解提供什么帮助？</p></div>
+                    </div>
+                    <div class="speaker-note reveal d6"><strong>讲述提示</strong><p>这些问题可以用于课堂讨论、读书会或案例督导，引导听众把理论与临床经验连接起来。</p></div>
+                    <div class="baseline"><span>综合</span><span>36 / 36</span></div>
+                </div>
+            </div>
+<div class="tabs" aria-hidden="true">
+                <span class="tab tab-1">导入</span><span class="tab tab-2">宇宙树</span><span class="tab tab-3">三口泉</span><span class="tab tab-4">神经</span><span class="tab tab-5 on">综合</span>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Page counter lives outside the scaled stage -->
+<div class="deck-controls" aria-hidden="true"><span class="cur" id="pageCur">1</span>&nbsp;/&nbsp;<span id="pageTotal">36</span></div>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Fixed 1920×1080 stage, scaled uniformly to the viewport.
+   Navigation: ← → Space PageUp/PageDown Home/End, wheel,
+   touch swipe. Current slide is mirrored into the URL hash.
+   =========================================== */
+(function () {
+    'use strict';
+
+    var STAGE_W = 1920;
+    var STAGE_H = 1080;
+
+    var stage = document.getElementById('deckStage');
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var pageCur = document.getElementById('pageCur');
+    var pageTotal = document.getElementById('pageTotal');
+    var current = 0;
+    var wheelLockUntil = 0;
+
+    pageTotal.textContent = String(slides.length);
+
+    /* --- Stage scaling: one transform, letterbox as needed --- */
+    function fitStage() {
+        var factor = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+        var x = (window.innerWidth - STAGE_W * factor) / 2;
+        var y = (window.innerHeight - STAGE_H * factor) / 2;
+        stage.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(' + factor + ')';
+    }
+
+    /* --- Hash routing: #/3 means slide index 3 (0-based) --- */
+    function indexFromHash() {
+        var m = /^#\/(\d+)$/.exec(window.location.hash);
+        if (!m) return null;
+        var idx = parseInt(m[1], 10);
+        return isNaN(idx) ? null : idx;
+    }
+
+    function show(index, skipHash) {
+        current = Math.max(0, Math.min(index, slides.length - 1));
+        slides.forEach(function (slide, i) {
+            slide.classList.toggle('active', i === current);
+            slide.classList.toggle('visible', i === current);
+        });
+        pageCur.textContent = String(current + 1);
+        if (!skipHash) {
+            var target = '#/' + current;
+            if (window.location.hash !== target) {
+                window.history.replaceState(null, '', target);
+            }
+        }
+    }
+
+    function next() { show(current + 1); }
+    function prev() { show(current - 1); }
+
+    /* --- Keyboard --- */
+    document.addEventListener('keydown', function (e) {
+        if (e.target && e.target.getAttribute && e.target.getAttribute('contenteditable')) return;
+        switch (e.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+            case ' ':
+            case 'PageDown':
+                e.preventDefault(); next(); break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+            case 'PageUp':
+                e.preventDefault(); prev(); break;
+            case 'Home':
+                e.preventDefault(); show(0); break;
+            case 'End':
+                e.preventDefault(); show(slides.length - 1); break;
+        }
+    });
+
+    /* --- Mouse wheel (debounced) --- */
+    document.addEventListener('wheel', function (e) {
+        var now = Date.now();
+        if (now < wheelLockUntil) return;
+        if (Math.abs(e.deltaY) < 12) return;
+        wheelLockUntil = now + 650;
+        if (e.deltaY > 0) { next(); } else { prev(); }
+    }, { passive: true });
+
+    /* --- Touch swipe --- */
+    var touchX = null;
+    document.addEventListener('touchstart', function (e) {
+        if (e.touches.length === 1) touchX = e.touches[0].clientX;
+    }, { passive: true });
+    document.addEventListener('touchend', function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        touchX = null;
+        if (Math.abs(dx) < 40) return;
+        if (dx < 0) { next(); } else { prev(); }
+    }, { passive: true });
+
+    /* --- Hash navigation (back/forward, deep links) --- */
+    window.addEventListener('hashchange', function () {
+        var idx = indexFromHash();
+        if (idx !== null && idx !== current) show(idx, true);
+    });
+
+    window.addEventListener('resize', fitStage);
+
+    fitStage();
+    var initial = indexFromHash();
+    show(initial !== null ? initial : 0, initial === null);
+})();
+</script>
+</body>
+</html>
