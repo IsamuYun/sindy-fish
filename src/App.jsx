@@ -1,17 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { sceneAssets } from './sceneAssets.js';
-import { useParallaxScene } from './useParallaxScene.js';
-
-const navLeft = [
-  ['内庭', 0],
-  ['初谈', 0.12],
-  ['边界', 0.2],
-];
-
-const navRight = [
-  ['向内', 0.56],
-  ['门槛', 0.78],
-];
+import HomePage from './pages/HomePage.jsx';
+import PavilionPage from './pages/PavilionPage.jsx';
+import TeaRoomPage from './pages/TeaRoomPage.jsx';
 
 const initialForm = {
   name: '',
@@ -20,292 +10,16 @@ const initialForm = {
   privacy: false,
 };
 
-const slideLinks = [
-  {
-    href: `${import.meta.env.BASE_URL}src/slide/sand-game-1.html`,
-    title: '沙盘游戏疗法 I',
-    meta: '第八九章讲解',
-  },
-  {
-    href: `${import.meta.env.BASE_URL}src/slide/sand-game-2.html`,
-    title: '沙盘游戏疗法 II',
-    meta: '神话与神经科学',
-  },
-];
-
-function StarMark() {
+function PageFrame({ active, children }) {
   return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      focusable="false"
+    <div
+      className="app-page"
+      data-active={active ? 'true' : 'false'}
+      aria-hidden={active ? undefined : 'true'}
+      inert={active ? undefined : ''}
     >
-      <path
-        d="M14 2l2.09 6.42H23l-5.45 3.96L19.64 19 14 15.04 8.36 19l2.09-6.62L5 8.42h6.91L14 2z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <span className="play-icon" aria-hidden="true">
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 12 12"
-        fill="currentColor"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path d="M3 2l7 4-7 4V2z" />
-      </svg>
-    </span>
-  );
-}
-
-function ChevronDown() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="rgba(255,255,255,0.8)"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
-function TimelineButton({ children, progress, onJump }) {
-  return (
-    <button className="nav-link" type="button" onClick={() => onJump(progress)}>
       {children}
-    </button>
-  );
-}
-
-function Navigation({ onJump, onOpenConsult, onOpenTeaRoom, onOpenPavilion }) {
-  return (
-    <nav aria-label="内庭页面导航">
-      <div className="nav-group left">
-        {navLeft.map(([label, progress]) => (
-          <TimelineButton key={label} progress={progress} onJump={onJump}>
-            {label}
-          </TimelineButton>
-        ))}
-      </div>
-      <div className="nav-logo" aria-hidden="true">
-        <StarMark />
-      </div>
-      <div className="nav-group right">
-        {navRight.map(([label, progress]) => (
-          <TimelineButton key={label} progress={progress} onJump={onJump}>
-            {label}
-          </TimelineButton>
-        ))}
-        <button className="nav-link" type="button" onClick={onOpenTeaRoom}>
-          茶室
-        </button>
-        <button className="nav-link" type="button" onClick={onOpenPavilion}>
-          亭子
-        </button>
-        <button className="nav-link" type="button" onClick={onOpenConsult}>
-          预约
-        </button>
-      </div>
-      <div className="nav-mobile">
-        <TimelineButton progress={0} onJump={onJump}>
-          进入
-        </TimelineButton>
-        <div className="nav-logo" aria-hidden="true">
-          <StarMark />
-        </div>
-        <button className="nav-link" type="button" onClick={onOpenTeaRoom}>
-          茶室
-        </button>
-        <button className="nav-link" type="button" onClick={onOpenPavilion}>
-          亭子
-        </button>
-        <button className="nav-link" type="button" onClick={onOpenConsult}>
-          预约
-        </button>
-      </div>
-    </nav>
-  );
-}
-
-function HeroScene({ sceneRef, entered, onOpenConsult, onOpenTeaRoom, onOpenPavilion }) {
-  return (
-    <section id="scene1" ref={sceneRef} aria-label="内庭心理咨询介绍">
-      <div className={`hero-left fade-ui${entered ? ' in' : ''}`}>
-        <p className="hero-kicker">女性心理咨询师 · 保密会谈</p>
-        <h1 className="hero-title">
-          <span className="title-zh">走入内庭</span>
-          <span className="title-en">INNER COURT</span>
-        </h1>
-        <p className="hero-sub">
-          在层叠檐影与静水之间，安放情绪、关系与自我回声。这里不是逃离现实，而是在安全边界里慢慢看见自己。
-        </p>
-        <div className="hero-slide-links" aria-label="沙盘游戏疗法页面">
-          {slideLinks.map((item) => (
-            <a className="slide-link" key={item.href} href={item.href}>
-              <span>{item.title}</span>
-              <small>{item.meta}</small>
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div className={`hero-right fade-ui${entered ? ' in' : ''}`}>
-        <button
-          className="hero-card"
-          type="button"
-          style={{ backgroundImage: `url('${sceneAssets.cards[0]}')` }}
-          onClick={onOpenConsult}
-          aria-label="预约初谈"
-        >
-          <div className="card-label">
-            <PlayIcon />
-            预约初谈
-          </div>
-        </button>
-
-        <div
-          className="hero-card"
-          style={{ backgroundImage: `url('${sceneAssets.cards[1]}')` }}
-          aria-label="进入雨中茶室页面"
-        >
-          <button className="card-hit-area" type="button" onClick={onOpenTeaRoom}>
-            <span>
-              雨中茶室
-              <small>雨声 · 茶香 · 静坐</small>
-            </span>
-          </button>
-        </div>
-
-        <button
-          className="hero-card"
-          type="button"
-          style={{ backgroundImage: `url('${sceneAssets.cards[2]}')` }}
-          onClick={onOpenPavilion}
-          aria-label="进入花影亭子页面"
-        >
-          <div className="card-label">
-            <PlayIcon />
-            花影亭子
-          </div>
-        </button>
-      </div>
-
-      <div className={`dots fade-ui${entered ? ' in' : ''}`} aria-hidden="true">
-        <i className="wide" />
-        <i className="thin" />
-        <i className="thin" />
-        <i className="thin" />
-      </div>
-
-      <div className={`scroll-cue fade-ui${entered ? ' in' : ''}`} aria-hidden="true">
-        <span>向内</span>
-        <div className="chev">
-          <ChevronDown />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const spaceContent = {
-  'tea-room': {
-    image: sceneAssets.spaces.teaRoomRain,
-    alt: '雨中的茶室',
-    eyebrow: 'Rain Tea Room',
-    title: '雨中茶室',
-    text: '在雨声与茶香之间，让谈话慢下来。',
-    otherLabel: '去亭子',
-    navLabel: '茶室页面导航',
-  },
-  pavilion: {
-    image: sceneAssets.spaces.pavilion,
-    alt: '花影亭子',
-    eyebrow: 'Garden Pavilion',
-    title: '花影亭子',
-    text: '在开阔处安坐，把心绪交还给风与光。',
-    otherLabel: '去茶室',
-    navLabel: '亭子页面导航',
-  },
-};
-
-function SpacePage({ space, onHome, onOpenConsult, onOpenTeaRoom, onOpenPavilion }) {
-  const content = spaceContent[space] ?? spaceContent['tea-room'];
-  const openOtherSpace = space === 'tea-room' ? onOpenPavilion : onOpenTeaRoom;
-
-  return (
-    <main className="space-page" aria-label={content.title} data-space={space}>
-      <nav className="space-nav" aria-label={content.navLabel}>
-        <button className="nav-link" type="button" onClick={onHome}>
-          返回首页
-        </button>
-        <div className="nav-logo" aria-hidden="true">
-          <StarMark />
-        </div>
-        <div className="space-nav-actions">
-          <button className="nav-link" type="button" onClick={openOtherSpace}>
-            {content.otherLabel}
-          </button>
-          <button className="nav-link" type="button" onClick={onOpenConsult}>
-            预约
-          </button>
-        </div>
-      </nav>
-
-      <section className="space-hero">
-        <article className="space-panel">
-          <img src={content.image} alt={content.alt} />
-          <div className="space-copy">
-            <p>{content.eyebrow}</p>
-            <h1>{content.title}</h1>
-            <span>{content.text}</span>
-          </div>
-        </article>
-      </section>
-
-      <div className="space-footer">
-        <button className="cta-button" type="button" onClick={onOpenConsult}>
-          预约初谈
-        </button>
-      </div>
-    </main>
-  );
-}
-
-function ThresholdScene({ sceneRef, onOpenConsult }) {
-  return (
-    <section id="scene2" ref={sceneRef} aria-label="预约咨询">
-      <div className="cta-wrap">
-        <h2 className="cta-title">跨过安静的门槛</h2>
-        <p className="cta-text">
-          预约一次初谈，让困扰被缓慢展开，也让新的秩序在安全、保密的关系里重新成形。
-        </p>
-        <div className="cta-actions">
-          <button className="cta-button" type="button" onClick={onOpenConsult}>
-            预约初谈
-          </button>
-          <span className="cta-note">非紧急支持 · 初谈中共同确认咨询设置与保密边界</span>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }
 
@@ -454,7 +168,6 @@ function ConsultationDialog({
 }
 
 export default function App() {
-  const { refs, activePage, uiEntered, jumpToProgress } = useParallaxScene();
   const [view, setView] = useState('home');
   const [isConsultOpen, setIsConsultOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
@@ -507,7 +220,6 @@ export default function App() {
   const openPavilion = () => openSpace('pavilion');
 
   const openHome = () => {
-    jumpToProgress(0);
     setView('home');
   };
 
@@ -582,49 +294,30 @@ export default function App() {
   };
 
   return (
-    <>
-      {view === 'home' ? (
-        <main id="scroll-root" ref={refs.scrollRootRef} data-page={activePage + 1}>
-          <div id="stage">
-            <div
-              id="world"
-              className="layer"
-              ref={refs.worldRef}
-              aria-hidden="true"
-              style={{ backgroundImage: `url('${sceneAssets.world}')` }}
-            />
-            <div
-              id="world-end"
-              className="layer"
-              ref={refs.worldEndRef}
-              aria-hidden="true"
-              style={{ backgroundImage: `url('${sceneAssets.worldEnd}')` }}
-            />
-            <Navigation
-              onJump={jumpToProgress}
-              onOpenConsult={openConsult}
-              onOpenTeaRoom={openTeaRoom}
-              onOpenPavilion={openPavilion}
-            />
-            <HeroScene
-              sceneRef={refs.sceneOneRef}
-              entered={uiEntered}
-              onOpenConsult={openConsult}
-              onOpenTeaRoom={openTeaRoom}
-              onOpenPavilion={openPavilion}
-            />
-            <ThresholdScene sceneRef={refs.sceneTwoRef} onOpenConsult={openConsult} />
-          </div>
-        </main>
-      ) : (
-        <SpacePage
-          space={view}
-          onHome={openHome}
+    <div className="app-shell" data-view={view}>
+      <PageFrame active={view === 'home'}>
+        <HomePage
           onOpenConsult={openConsult}
           onOpenTeaRoom={openTeaRoom}
           onOpenPavilion={openPavilion}
         />
-      )}
+      </PageFrame>
+
+      <PageFrame active={view === 'tea-room'}>
+        <TeaRoomPage
+          onHome={openHome}
+          onOpenConsult={openConsult}
+          onOpenPavilion={openPavilion}
+        />
+      </PageFrame>
+
+      <PageFrame active={view === 'pavilion'}>
+        <PavilionPage
+          onHome={openHome}
+          onOpenConsult={openConsult}
+          onOpenTeaRoom={openTeaRoom}
+        />
+      </PageFrame>
 
       <ConsultationDialog
         isOpen={isConsultOpen}
@@ -638,6 +331,6 @@ export default function App() {
         onChange={updateForm}
         onSubmit={submitConsult}
       />
-    </>
+    </div>
   );
 }
