@@ -21,7 +21,7 @@ function TimelineButton({ children, progress, onJump }) {
 
 export default function Navigation({ onJump, onOpenConsult, onOpenTeaRoom, onOpenPavilion }) {
   return (
-    <nav aria-label="内庭页面导航">
+    <nav className="top-nav" aria-label="内庭页面导航">
       <div className="nav-group left">
         {navLeft.map(([label, progress]) => (
           <TimelineButton key={label} progress={progress} onJump={onJump}>
@@ -29,9 +29,7 @@ export default function Navigation({ onJump, onOpenConsult, onOpenTeaRoom, onOpe
           </TimelineButton>
         ))}
       </div>
-      <div className="nav-logo" aria-hidden="true">
-        <StarMark />
-      </div>
+      
       <div className="nav-group right">
         {navRight.map(([label, progress]) => (
           <TimelineButton key={label} progress={progress} onJump={onJump}>

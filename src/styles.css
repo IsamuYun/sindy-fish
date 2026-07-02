@@ -200,6 +200,49 @@ nav {
   display: none;
 }
 
+/* Centered frosted-glass top navigation bar */
+.top-nav {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 48px);
+  margin-top: 18px;
+  justify-content: center;
+  gap: 26px;
+  padding: 12px 30px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 111, 0, 0.62);
+  border: 1px solid rgba(255, 248, 225, 0.28);
+  box-shadow: 0 14px 40px rgba(140, 60, 0, 0.28);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  color: #fff8e1;
+}
+
+.top-nav .nav-group {
+  flex: 0 0 auto;
+  gap: 22px;
+}
+
+.top-nav .nav-group.right {
+  justify-content: center;
+}
+
+.top-nav .nav-link {
+  color: #fff8e1;
+}
+
+.top-nav .nav-link:hover,
+.top-nav .nav-link:focus-visible {
+  outline-color: rgba(255, 248, 225, 0.6);
+  text-shadow: 0 0 18px rgba(255, 248, 225, 0.5);
+}
+
+.top-nav .nav-logo {
+  color: #fff8e1;
+}
+
 .card-hit-area {
   position: absolute;
   inset: 0;
@@ -925,6 +968,11 @@ button.hero-card:focus-visible {
 @media (max-width: 767px) {
   nav {
     padding: 18px 20px;
+  }
+
+  .top-nav {
+    width: min(420px, calc(100vw - 32px));
+    padding: 12px 22px;
   }
 
   .nav-group {
