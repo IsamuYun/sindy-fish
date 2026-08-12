@@ -31,7 +31,7 @@ export default function ConsultProcessPage({
   onOpenPavilion,
 }) {
   return (
-    <section id="scene2" ref={sceneRef} aria-label="咨询是怎么进行的">
+    <section id="scene3" ref={sceneRef} aria-label="咨询是怎么进行的">
       <Navigation
         onJump={onJump}
         onOpenConsult={onOpenConsult}

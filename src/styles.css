@@ -16,6 +16,17 @@
   --border-strong: rgba(255, 255, 255, 0.58);
   --radius-pill: 999px;
   --radius-card: 8px;
+  /* 首页三屏共用的面板样式，以第二屏「途中」为准 */
+  --panel-border: #0277BD;
+  --panel-bg: #E1F5FE;
+  --panel-heading: #01579B;
+  --panel-kicker: rgba(1, 60, 92, 0.72);
+  --panel-text: rgba(0, 0, 0, 0.82);
+  --panel-radius: 4px;
+  --panel-padding: clamp(24px, 4vw, 34px);
+  --panel-title-size: clamp(30px, 5vw, 44px);
+  --panel-body-size: 15px;
+  --panel-kicker-size: 12px;
   --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.45);
   --shadow-dialog: 0 30px 90px rgba(0, 0, 0, 0.55);
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
@@ -122,24 +133,19 @@ button {
   pointer-events: none;
 }
 
-#world,
-#world-end {
+/* 走向海边：每一层背景都是路上的一站，由 useParallaxScene 逐帧推进。 */
+.world-layer {
   background-size: cover;
-  background-position: center;
-}
-
-#world {
-  z-index: 0;
-  opacity: 1;
-  background-position: left center;
-  transform-origin: left center;
-}
-
-#world-end {
-  opacity: 0;
+  /* 偏下的锚点：宽屏裁掉的是天空，前景的人物 / 岸边保持完整。 */
+  background-position: center 85%;
   transform-origin: center center;
-  z-index: 2;
-  box-shadow: 0 -28px 90px rgba(10, 6, 8, 0.22);
+  transform: scale(1.04);
+  backface-visibility: hidden;
+  opacity: 0;
+}
+
+.world-layer[data-index='0'] {
+  opacity: 1;
 }
 
 nav {
@@ -396,53 +402,58 @@ nav {
   transform: translateX(-50%);
 }
 
-#scene1 {
+#scene1,
+#scene2,
+#scene3 {
   position: absolute;
   inset: 0;
   z-index: 46;
   pointer-events: none;
+  will-change: opacity, transform;
+}
+
+/* 第一、二屏用同一套居中方式，翻页时面板不会跳位；
+   底部 200px 内距 = 面板整体上移 100px，让出画面下方的人物。
+   （transform 不能用：rAF 每帧会覆写 scene 的 inline transform。） */
+#scene1,
+#scene2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px 200px;
+}
+
+#scene1 {
+  opacity: 1;
 }
 
 .hero-row {
-  position: absolute;
-  top: 50%;
-  left: 60px;
-  right: 40px;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(24px, 4vw, 72px);
+  /* 宽度与 .walk-wrap 一致，右侧同样留出 .page-dots */
+  width: min(560px, calc(100vw - 240px));
   pointer-events: none;
 }
 
 .hero-left {
-  flex: 1 1 420px;
-  max-width: 560px;
+  width: 100%;
   min-width: 0;
-  border: 1px solid #EF6C00;
-  border-radius: 4px;
-  background: #FFF8E1;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  background: var(--panel-bg);
   color: #000000;
-  padding: 28px;
+  padding: var(--panel-padding);
   pointer-events: auto;
 }
 
 .hero-title {
-  color: #000000;
-  font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif;
-  font-size: clamp(46px, 7vw, 92px);
-  line-height: 1;
-  letter-spacing: 0.01em;
-  margin: 0 0 22px;
+  margin: 0 0 14px;
+  color: var(--panel-heading);
+  font-size: var(--panel-title-size);
+  line-height: 1.1;
   text-shadow: none;
 }
 
 .hero-title .title-zh {
   display: block;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
-  font-size: clamp(32px, 6.4vw, 36px);
-  letter-spacing: 0.08em;
 }
 
 .hero-title .title-en {
@@ -454,28 +465,36 @@ nav {
 }
 
 .hero-kicker {
-  margin: 0 0 14px;
-  color: #000000;
-  font-size: 13px;
+  margin: 0 0 10px;
+  color: var(--panel-kicker);
+  font-size: var(--panel-kicker-size);
   letter-spacing: 0.18em;
-  line-height: 1.6;
-  text-transform: uppercase;
+  line-height: 1.4;
 }
 
+/* 大标题下的正文，与第二、三屏的正文同一套样式 */
 .hero-sub {
-  flex: 1;
   max-width: 440px;
   margin: 0;
-  color: #000000;
-  font-size: 16px;
+  color: var(--panel-text);
+  font-size: var(--panel-body-size);
   line-height: 1.7;
   text-wrap: pretty;
 }
 
+/* 方框箭头 + 蓝色提示语，与第二屏的 .walk-next 对齐 */
 .hero-sub-row {
   display: flex;
   align-items: center;
   gap: 14px;
+  margin-top: 22px;
+}
+
+.hero-cue-text {
+  margin: 0;
+  color: var(--panel-heading);
+  font-size: var(--panel-body-size);
+  line-height: 1.7;
 }
 
 .hero-slide-links {
@@ -521,83 +540,6 @@ nav {
   transform: translateY(-1px);
 }
 
-.hero-right {
-  flex: 0 1 auto;
-  display: flex;
-  gap: 18px;
-  pointer-events: auto;
-}
-
-.hero-card {
-  position: relative;
-  flex: none;
-  width: clamp(164px, 11vw, 192px);
-  aspect-ratio: 1;
-  height: auto;
-  overflow: hidden;
-  border: 0;
-  border-radius: var(--radius-card);
-  background-color: rgba(255, 255, 255, 0.08);
-  background-position: center;
-  background-size: cover;
-  box-shadow: var(--shadow-card);
-  color: var(--color-ink);
-  cursor: default;
-  padding: 0;
-  text-align: left;
-}
-
-button.hero-card {
-  appearance: none;
-  cursor: pointer;
-}
-
-button.hero-card:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.86);
-  outline-offset: 4px;
-}
-
-.card-label {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.72) 0%,
-    rgba(0, 0, 0, 0.18) 60%,
-    transparent 100%
-  );
-  backdrop-filter: blur(6px);
-  font-size: 16px;
-  letter-spacing: 0.08em;
-}
-
-.consult-card-label {
-  height: clamp(48px, 2vh, 64px);
-  box-sizing: border-box;
-  justify-content: center;
-  background:rgba(45, 153, 102, 0.58);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  color: #FFFFFF;
-  padding: 0 14px;
-  backdrop-filter: none;
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.consult-card-label svg {
-  width: 20px;
-  height: 20px;
-  flex: none;
-}
-
 .patron-metric {
   position: absolute;
   inset: 0;
@@ -623,68 +565,203 @@ button.hero-card:focus-visible {
 .scroll-cue {
   display: flex;
   align-items: center;
-  color: #EF6C00;
+  color: var(--panel-heading);
   flex: none;
   justify-content: center;
 }
 
-.scroll-cue .chev {
+#scene2 {
+  opacity: 0;
+}
+
+.walk-wrap {
+  /* 右侧留出 .page-dots 的竖排导航 */
+  width: min(560px, calc(100vw - 240px));
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  background: var(--panel-bg);
+  color: #000000;
+  padding: var(--panel-padding);
+  text-align: left;
+}
+
+.walk-kicker {
+  margin: 0 0 10px;
+  color: var(--panel-kicker);
+  font-size: var(--panel-kicker-size);
+  letter-spacing: 0.18em;
+  line-height: 1.4;
+}
+
+.walk-title {
+  margin: 0 0 14px;
+  color: var(--panel-heading);
+  font-size: var(--panel-title-size);
+  line-height: 1.1;
+}
+
+.walk-text {
+  margin: 0;
+  color: var(--panel-text);
+  font-size: var(--panel-body-size);
+  line-height: 1.7;
+}
+
+.cta-wrap .cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 2px;
+  background: transparent;
+  backdrop-filter: none;
+  color: var(--panel-heading);
+  padding: 10px 16px;
+  cursor: pointer;
+  font: 13px/1.2 'Imprima', sans-serif;
+  letter-spacing: 0.08em;
+  transition: background 0.3s var(--ease-standard), color 0.3s var(--ease-standard);
+}
+
+.cta-wrap .cta-button:hover,
+.cta-wrap .cta-button:focus-visible {
+  background: var(--panel-border);
+  color: #ffffff;
+  transform: none;
+}
+
+/* 与第一屏的滚动提示同款：方框箭头 + 旁边一行字 */
+.walk-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+  border: 0;
+  background: transparent;
+  color: var(--panel-heading);
+  padding: 0;
+  cursor: pointer;
+  font-size: var(--panel-body-size);
+  line-height: 1.7;
+  text-align: left;
+}
+
+.scroll-cue .chev,
+.walk-next .chev {
   width: 36px;
   height: 36px;
-  border: 1px solid #EF6C00;
+  flex: none;
+  border: 1px solid var(--panel-border);
   border-radius: 2px;
   display: grid;
   place-items: center;
+  color: var(--panel-heading);
+  transition: background 0.3s var(--ease-standard), color 0.3s var(--ease-standard);
   animation: bobUp 2.0s ease-in-out infinite;
 }
 
-#scene2 {
+.walk-next:hover .chev,
+.walk-next:focus-visible .chev {
+  background: var(--panel-border);
+  color: #ffffff;
+}
+
+.page-dots {
   position: absolute;
-  inset: 0;
-  z-index: 46;
+  top: 50%;
+  right: 26px;
+  z-index: 48;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  transform: translateY(-50%);
+}
+
+.page-dot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+/* 没有底板，直接压在画面上：用面板蓝 + 白色光晕保证在天空和白墙上都读得清。 */
+.page-dot-label {
+  color: var(--panel-heading);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  opacity: 0.7;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(255, 255, 255, 0.95);
+  transition: opacity 0.35s var(--ease-standard), color 0.35s var(--ease-standard);
+}
+
+.page-dot[data-active='true'] .page-dot-label,
+.page-dot:hover .page-dot-label,
+.page-dot:focus-visible .page-dot-label {
+  opacity: 1;
+}
+
+.page-dot-mark {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--panel-heading);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  transition: background 0.35s var(--ease-standard), transform 0.35s var(--ease-standard);
+}
+
+.page-dot[data-active='true'] .page-dot-mark {
+  background: var(--panel-heading);
+  transform: scale(1.35);
+}
+
+#scene3 {
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  pointer-events: none;
   padding: 0 20px;
 }
 
 .cta-wrap {
-  width: min(800px, calc(100vw - 40px));
+  /* 右侧留出 .page-dots 的竖排导航 */
+  width: min(800px, calc(100vw - 240px));
   max-height: calc(100vh - 104px);
   overflow: auto;
-  border: 2px solid #186A3B;
-  border-radius: 8px;
-  background: #EAFAF1;
-  padding: clamp(26px, 4vw, 38px);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  background: var(--panel-bg);
+  color: #000000;
+  padding: var(--panel-padding);
   text-align: left;
 }
 
 .cta-kicker {
   margin: 0 0 10px;
-  color: rgba(18, 61, 39, 0.72);
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  color: var(--panel-kicker);
+  font-size: var(--panel-kicker-size);
+  letter-spacing: 0.18em;
   line-height: 1.4;
-  text-transform: uppercase;
 }
 
 .cta-title {
-  color: #186A3B;
-  font-family: 'Viaoda Libre', 'Songti SC', 'STSong', serif;
-  font-size: clamp(36px, 4.8vw, 56px);
-  letter-spacing: 0.05em;
-  line-height: 1.08;
-  margin: 0 0 16px;
+  margin: 0 0 14px;
+  color: var(--panel-heading);
+  font-size: var(--panel-title-size);
+  line-height: 1.1;
   text-shadow: none;
 }
 
 .cta-text {
   max-width: 680px;
   margin: 0;
-  color: #123D27;
-  font-size: 16px;
+  color: var(--panel-text);
+  font-size: var(--panel-body-size);
   line-height: 1.7;
   text-wrap: pretty;
 }
@@ -698,15 +775,14 @@ button.hero-card:focus-visible {
 }
 
 .consult-guide-item {
-  border-top: 1px solid rgba(24, 106, 59, 0.34);
+  border-top: 1px solid rgba(2, 119, 189, 0.34);
   padding-top: 13px;
 }
 
 .consult-guide-item h3 {
   margin: 0 0 7px;
-  color: #186A3B;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
-  font-size: 17px;
+  color: var(--panel-heading);
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.3;
@@ -714,7 +790,7 @@ button.hero-card:focus-visible {
 
 .consult-guide-item p {
   margin: 0;
-  color: #123D27;
+  color: var(--panel-text);
   font-size: 13px;
   line-height: 1.68;
   text-wrap: pretty;
@@ -756,22 +832,10 @@ button.hero-card:focus-visible {
 
 .cta-note {
   max-width: 520px;
-  color: rgba(18, 61, 39, 0.72);
-  font-size: 12px;
+  color: var(--panel-kicker);
+  font-size: var(--panel-kicker-size);
   letter-spacing: 0.08em;
   line-height: 1.6;
-}
-
-.cta-wrap .cta-button {
-  border-color: #186A3B;
-  background: rgba(24, 106, 59, 0.08);
-  color: #186A3B;
-}
-
-.cta-wrap .cta-button:hover,
-.cta-wrap .cta-button:focus-visible {
-  border-color: #186A3B;
-  background: rgba(24, 106, 59, 0.14);
 }
 
 .consult-panel {
@@ -958,11 +1022,11 @@ button.hero-card:focus-visible {
 }
 
 .hero-row.fade-ui {
-  transform: translateY(calc(-50% + 20px));
+  transform: translateY(20px);
 }
 
 .hero-row.fade-ui.in {
-  transform: translateY(-50%);
+  transform: none;
 }
 
 @media (max-width: 767px) {
@@ -988,52 +1052,22 @@ button.hero-card:focus-visible {
   }
 
   .hero-row {
-    top: 16px;
-    left: 50%;
-    right: auto;
-    width: min(320px, calc(100vw - 40px));
-    flex-direction: column;
-    gap: 14px;
-    transform: translateX(-50%);
-  }
-
-  .hero-row.fade-ui {
-    transform: translate(-50%, 20px);
-  }
-
-  .hero-row.fade-ui.in {
-    transform: translateX(-50%);
+    width: calc(100vw - 96px);
   }
 
   .hero-left {
-    display: none;
-  }
-
-  .hero-title {
-    color: #000000;
-    font-size: clamp(24px, 28px, 32px);
-  }
-
-  .hero-title .title-zh {
-    font-size: clamp(24px, 28px, 32px);
-    letter-spacing: 0.06em;
-  }
-
-  .hero-title .title-en {
-    margin-top: 8px;
-    font-size: 18px;
-    letter-spacing: 0.14em;
-  }
-
-  .hero-kicker {
-    color: #000000;
+    padding: 22px;
   }
 
   .hero-sub {
     max-width: 280px;
     margin: 0;
-    color: #000000;
+    font-size: 14px;
     text-align: left;
+  }
+
+  .hero-cue-text {
+    font-size: 14px;
   }
 
   .hero-sub-row {
@@ -1065,37 +1099,39 @@ button.hero-card:focus-visible {
     letter-spacing: 0.04em;
   }
 
-  .hero-right {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-    gap: 12px;
-  }
-
-  .hero-right .hero-card {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .scroll-cue .chev {
+  .scroll-cue .chev,
+  .walk-next .chev {
     width: 32px;
     height: 32px;
   }
 
-  .cta-wrap {
-    width: min(800px, calc(100vw - 40px));
-    max-height: calc(100vh - 112px);
+  .walk-next {
+    font-size: 14px;
+  }
+
+  .walk-wrap {
+    width: calc(100vw - 96px);
     padding: 22px;
   }
 
-  .cta-kicker {
-    font-size: 10px;
+  .walk-text {
+    font-size: 14px;
   }
 
-  .cta-title {
-    font-size: 32px;
-    margin-bottom: 12px;
+  .page-dots {
+    right: 12px;
+    gap: 12px;
+    padding: 12px 12px;
+  }
+
+  .page-dot-label {
+    display: none;
+  }
+
+  .cta-wrap {
+    width: calc(100vw - 96px);
+    max-height: calc(100vh - 112px);
+    padding: 22px;
   }
 
   .cta-text {
@@ -1174,15 +1210,27 @@ button.hero-card:focus-visible {
   }
 }
 
+/* 矮屏（横屏手机等）不够高时收一半，避免面板被上移顶出画面 */
+@media (max-height: 640px) {
+  #scene1,
+  #scene2 {
+    padding-bottom: 100px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .scroll-cue .chev {
+  .scroll-cue .chev,
+  .walk-next .chev {
     animation: none;
   }
 
   .fade-ui,
   .cta-button,
   .consult-panel,
-  .consult-row button {
+  .consult-row button,
+  .walk-next .chev,
+  .page-dot-mark,
+  .page-dot-label {
     transition: none;
   }
 }

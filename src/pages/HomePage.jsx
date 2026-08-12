@@ -1,9 +1,12 @@
-import backgroundOne from '../assets/img/home.jpg';
-import backgroundTwo from '../assets/img/background-2.jpg';
-import { ChevronDown, ChevronLeft, ChevronRight } from '../components/Chevrons.jsx';
-import { sceneAssets } from '../sceneAssets.js';
+import seasideFar from '../assets/img/home/hero-seaside-1.webp';
+import seasideMid from '../assets/img/home/hero-seaside-2.webp';
+import seasideShore from '../assets/img/home/hero-seaside-3.webp';
+import { ChevronDown } from '../components/Chevrons.jsx';
+import PageDots from '../components/PageDots.jsx';
+
 import { useParallaxScene } from '../useParallaxScene.js';
 import ConsultProcessPage from './ConsultProcessPage.jsx';
+import SeasideWalkPage from './SeasideWalkPage.jsx';
 
 const slideLinks = [
   {
@@ -18,19 +21,14 @@ const slideLinks = [
   },
 ];
 
-const homePageAssets = {
-  backgroundOne,
-  backgroundTwo,
-  cards: [backgroundTwo, sceneAssets.spaces.teaRoomRain, sceneAssets.spaces.pavilion],
-};
+// 三层背景 = 一段走向海边的路：裂隙中望见海 → 山道上的全景 → 站到岸边。
+const journeyLayers = [
+  { image: seasideFar, label: '裂隙' },
+  { image: seasideMid, label: '途中' },
+  { image: seasideShore, label: '岸边' },
+];
 
-function HeroScene({
-  sceneRef,
-  entered,
-  onOpenConsultProcess,
-  onOpenTeaRoom,
-  onOpenPavilion,
-}) {
+function HeroScene({ sceneRef, entered }) {
   return (
     <section id="scene1" ref={sceneRef} aria-label="内庭心理咨询介绍">
       <div className={`hero-row fade-ui${entered ? ' in' : ''}`}>
@@ -40,57 +38,18 @@ function HeroScene({
             <span className="title-zh">心理健康</span>
             <span className="title-zh">是另一种财富</span>
           </h1>
+          <p className="hero-sub">
+            强大，不是忍耐 —— 是懂得求助
+          </p>
+
           <div className="hero-sub-row">
             <div className={`scroll-cue fade-ui${entered ? ' in' : ''}`} aria-hidden="true">
               <div className="chev">
                 <ChevronDown />
               </div>
             </div>
-            <p className="hero-sub">
-              强大，不是忍耐 —— 是懂得求助
-            </p>
+            <p className="hero-cue-text">向下滑动，前行</p>
           </div>
-        </div>
-
-        <div className="hero-right">
-          <button
-            className="hero-card"
-            type="button"
-            style={{ backgroundImage: `url('${homePageAssets.cards[0]}')` }}
-            onClick={onOpenConsultProcess}
-            aria-label="什么是心理咨询"
-          >
-            <div className="card-label consult-card-label">
-              <ChevronDown />
-              什么是心理咨询
-            </div>
-          </button>
-
-          <button
-            className="hero-card"
-            type="button"
-            style={{ backgroundImage: `url('${homePageAssets.cards[1]}')` }}
-            onClick={onOpenTeaRoom}
-            aria-label="进入雨中茶室页面"
-          >
-            <div className="card-label consult-card-label">
-              <ChevronLeft />
-              我能为你做什么
-            </div>
-          </button>
-
-          <button
-            className="hero-card"
-            type="button"
-            style={{ backgroundImage: `url('${homePageAssets.cards[2]}')` }}
-            onClick={onOpenPavilion}
-            aria-label="进入花影亭子页面"
-          >
-            <div className="card-label consult-card-label">
-              庭院回廊
-              <ChevronRight />
-            </div>
-          </button>
         </div>
       </div>
     </section>
@@ -102,42 +61,39 @@ export default function HomePage({
   onOpenTeaRoom,
   onOpenPavilion,
 }) {
-  const { refs, activePage, uiEntered, jumpToProgress } = useParallaxScene();
+  const { scrollRootRef, registerLayer, registerScene, activePage, uiEntered, jumpToPage } =
+    useParallaxScene(journeyLayers.length);
 
   return (
     <main
       id="scroll-root"
-      ref={refs.scrollRootRef}
+      ref={scrollRootRef}
       data-page={activePage + 1}
     >
       <div id="stage">
-        <div
-          id="world"
-          className="layer"
-          ref={refs.worldRef}
-          aria-hidden="true"
-          style={{ backgroundImage: `url('${homePageAssets.backgroundOne}')` }}
-        />
-        <div
-          id="world-end"
-          className="layer"
-          ref={refs.worldEndRef}
-          aria-hidden="true"
-          style={{ backgroundImage: `url('${homePageAssets.backgroundTwo}')` }}
-        />
-        <HeroScene
-          sceneRef={refs.sceneOneRef}
-          entered={uiEntered}
-          onOpenConsultProcess={() => jumpToProgress(1)}
-          onOpenTeaRoom={onOpenTeaRoom}
-          onOpenPavilion={onOpenPavilion}
-        />
+        {journeyLayers.map((layer, index) => (
+          <div
+            key={layer.label}
+            className="layer world-layer"
+            data-index={index}
+            ref={registerLayer(index)}
+            aria-hidden="true"
+            style={{ backgroundImage: `url('${layer.image}')`, zIndex: index }}
+          />
+        ))}
+        <HeroScene sceneRef={registerScene(0)} entered={uiEntered} />
+        <SeasideWalkPage sceneRef={registerScene(1)} onNext={() => jumpToPage(2)} />
         <ConsultProcessPage
-          sceneRef={refs.sceneTwoRef}
-          onJump={jumpToProgress}
+          sceneRef={registerScene(2)}
+          onJump={jumpToPage}
           onOpenConsult={onOpenConsult}
           onOpenTeaRoom={onOpenTeaRoom}
           onOpenPavilion={onOpenPavilion}
+        />
+        <PageDots
+          pages={journeyLayers.map((layer) => layer.label)}
+          activePage={activePage}
+          onJump={jumpToPage}
         />
       </div>
     </main>

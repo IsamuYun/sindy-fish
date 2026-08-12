@@ -1,19 +1,17 @@
 import { StarMark } from './StarMark.jsx';
 
+// 数字是首页的页序：0 裂隙 → 1 途中 → 2 岸边。
 const navLeft = [
   ['内庭', 0],
-  ['初谈', 0.12],
-  ['边界', 0.2],
+  ['途中', 1],
+  ['岸边', 2],
 ];
 
-const navRight = [
-  ['向内', 0.56],
-  ['门槛', 0.78],
-];
+const navRight = [['初谈', 2]];
 
-function TimelineButton({ children, progress, onJump }) {
+function TimelineButton({ children, page, onJump }) {
   return (
-    <button className="nav-link" type="button" onClick={() => onJump(progress)}>
+    <button className="nav-link" type="button" onClick={() => onJump(page)}>
       {children}
     </button>
   );
@@ -23,16 +21,16 @@ export default function Navigation({ onJump, onOpenConsult, onOpenTeaRoom, onOpe
   return (
     <nav className="top-nav" aria-label="内庭页面导航">
       <div className="nav-group left">
-        {navLeft.map(([label, progress]) => (
-          <TimelineButton key={label} progress={progress} onJump={onJump}>
+        {navLeft.map(([label, page]) => (
+          <TimelineButton key={label} page={page} onJump={onJump}>
             {label}
           </TimelineButton>
         ))}
       </div>
-      
+
       <div className="nav-group right">
-        {navRight.map(([label, progress]) => (
-          <TimelineButton key={label} progress={progress} onJump={onJump}>
+        {navRight.map(([label, page]) => (
+          <TimelineButton key={label} page={page} onJump={onJump}>
             {label}
           </TimelineButton>
         ))}
@@ -47,7 +45,7 @@ export default function Navigation({ onJump, onOpenConsult, onOpenTeaRoom, onOpe
         </button>
       </div>
       <div className="nav-mobile">
-        <TimelineButton progress={0} onJump={onJump}>
+        <TimelineButton page={0} onJump={onJump}>
           进入
         </TimelineButton>
         <div className="nav-logo" aria-hidden="true">
