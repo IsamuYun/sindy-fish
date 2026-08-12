@@ -123,33 +123,51 @@ server {
 
 当前网站是单页前端应用，`try_files ... /index.html` 可以避免刷新或直接访问路径时出现 404。
 
-## GitHub Pages
+## GitHub Pages（GitHub Actions 自动发布）
 
-如果部署到用户/组织根域名仓库，例如 `username.github.io`，直接构建并发布 `dist/` 即可。
+仓库里已经有现成的工作流：`.github/workflows/deploy-pages.yml`。
 
-如果部署到子路径仓库，例如：
+**一次性设置**：GitHub 仓库 → Settings → Pages → Build and deployment → Source 选择
+**GitHub Actions**（不要选 “Deploy from a branch”）。
 
-```text
-https://username.github.io/sindyfish/
-```
+之后：
 
-需要在 `vite.config.js` 中设置 `base`：
+- 推送到 `main` 会自动构建并发布，站点地址为
+  `https://<用户名>.github.io/<仓库名>/`（本仓库即 `https://isamuyun.github.io/sindy-fish/`）；
+- 提 PR 只会跑构建校验，不会发布；
+- 也可以在 Actions 页面手动触发（`workflow_dispatch`），用于随时刷新预览。
+
+发布完成后，Actions 运行页面的 `github-pages` environment 上会显示可点击的站点链接。
+
+### base 路径是怎么处理的
+
+Pages 的站点在子路径下（`/<仓库名>/`），所以 `vite.config.js` 的 `base` 做成了可注入：
 
 ```js
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
-export default defineConfig({
-  base: '/sindyfish/',
-  plugins: [react()],
-});
+base: process.env.BASE_PATH || '/',
 ```
 
-然后重新构建：
+工作流在构建时传入 `BASE_PATH: /${{ github.event.repository.name }}/`，仓库改名或被 fork 都不用改配置。
+本地开发、Vercel / Netlify / Nginx 等根路径部署不设这个变量，`base` 仍然是 `/`。
+
+需要在本地复现 Pages 上的构建结果：
 
 ```bash
-npm run build
+BASE_PATH=/sindy-fish/ npm run build
+npm run preview
 ```
+
+页面里所有指向静态文件的链接（例如两个 slide 页）都通过 `import.meta.env.BASE_URL` 拼接，
+所以子路径部署时不需要额外改动。
+
+### 手动发布（不用 Actions）
+
+```bash
+BASE_PATH=/<仓库名>/ npm run build
+```
+
+然后把 `dist/` 的内容发布到 `gh-pages` 分支或其他静态托管即可。
+如果部署到用户/组织根域名仓库（`username.github.io`），不需要设置 `BASE_PATH`。
 
 ## 图片和静态资源
 
@@ -188,7 +206,13 @@ npm run build
 
 ### GitHub Pages 子路径资源加载失败
 
-检查 `vite.config.js` 中的 `base` 是否等于仓库路径，例如 `/sindyfish/`。
+检查构建时是否传入了 `BASE_PATH=/<仓库名>/`（Actions 里由工作流自动注入）。
+`dist/index.html` 里的 `assets/` 链接应当以 `/<仓库名>/` 开头。
+
+### Actions 报错 “Pages site not found” / 部署步骤失败
+
+仓库 Settings → Pages 的 Source 没有设为 **GitHub Actions**，或该仓库是私有仓库且账号套餐
+不支持私有仓库的 Pages。
 
 ### 直接访问子路径返回 404
 

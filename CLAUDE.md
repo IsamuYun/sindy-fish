@@ -21,6 +21,11 @@ npm run preview    # serve the built dist/ on 127.0.0.1
 Node `^20.19.0 || >=22.12.0` is required (Vite 8). There is no lint or test command.
 Deployment details (Vercel, Netlify, Nginx, GitHub Pages) live in `docs/deploy.md`.
 
+`.github/workflows/deploy-pages.yml` builds and publishes `dist/` to GitHub Pages on every
+push to `main` (PRs build only). Sub-path deploys are handled by `base: process.env.BASE_PATH
+|| '/'` in `vite.config.js` — the workflow passes `BASE_PATH=/<repo-name>/`. Keep new links to
+static files going through `import.meta.env.BASE_URL` so they survive that.
+
 ## Architecture
 
 ### View switching without a router
